@@ -22,9 +22,11 @@ export function minutesToArrival(minutes: number, now = new Date()): string {
 
 export function latestArrivalToday(latestArrivalTime: string, now = new Date()): Date {
   const [hour, minute] = latestArrivalTime.split(":").map(Number);
-  const target = new Date(now);
-  target.setHours(hour, minute, 0, 0);
-  return target;
+  const hongKongNow = new Date(now.getTime() + 8 * 60 * 60000);
+  const year = hongKongNow.getUTCFullYear();
+  const month = String(hongKongNow.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(hongKongNow.getUTCDate()).padStart(2, "0");
+  return new Date(`${year}-${month}-${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+08:00`);
 }
 
 export function classifyArrival(arrivalIso: string | undefined, latestArrivalTime: string, now = new Date()): "on_time" | "late" | "unknown" {

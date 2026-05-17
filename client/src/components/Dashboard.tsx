@@ -29,6 +29,7 @@ function JourneyLane({
   title,
   status,
   startMinutes,
+  startLabel,
   endMinutes,
   endLabel,
   markers = 10,
@@ -38,6 +39,7 @@ function JourneyLane({
   title: string;
   status: React.ReactNode;
   startMinutes?: number;
+  startLabel?: string;
   endMinutes?: number;
   endLabel: string;
   markers?: number;
@@ -52,7 +54,7 @@ function JourneyLane({
       <div className="lane-body">
         <div className="lane-time start">
           <strong>{formatMinutes(startMinutes)}</strong>
-          <span>from now</span>
+          <span>{startLabel || "from now"}</span>
         </div>
         <div className="lane-track">
           {Array.from({ length: markers }).map((_, index) => (
@@ -133,6 +135,7 @@ export function Dashboard({ data }: Props) {
             title={`Bus ${data.profile.bus?.route || ""}`}
             status={<SourcePill health={data.bus.status.health} updatedAt={data.bus.status.updatedAt} />}
             startMinutes={firstBus?.origin?.minutes}
+            startLabel={formatClock(firstBus?.origin?.eta)}
             endMinutes={busTravelMinutes}
             endLabel={`ride · arrive ${formatClock(firstBus?.projectedArrival)}`}
             markers={12}
