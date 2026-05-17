@@ -1,7 +1,17 @@
 import { EtaItem, PairedBusEta } from "../../../shared/types";
 
+function hasExplicitTimezone(value: string): boolean {
+  return /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
+}
+
+export function parseApiDate(value: string): Date {
+  if (hasExplicitTimezone(value)) return new Date(value);
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  return new Date(`${normalized}+08:00`);
+}
+
 export function minutesUntil(iso: string, now = new Date()): number {
-  return Math.max(0, Math.round((new Date(iso).getTime() - now.getTime()) / 60000));
+  return Math.max(0, Math.round((parseApiDate(iso).getTime() - now.getTime()) / 60000));
 }
 
 export function minutesToArrival(minutes: number, now = new Date()): string {
@@ -17,7 +27,7 @@ export function latestArrivalToday(latestArrivalTime: string, now = new Date()):
 
 export function classifyArrival(arrivalIso: string | undefined, latestArrivalTime: string, now = new Date()): "on_time" | "late" | "unknown" {
   if (!arrivalIso) return "unknown";
-  return new Date(arrivalIso).getTime() <= latestArrivalToday(latestArrivalTime, now).getTime() ? "on_time" : "late";
+  return parseApiDate(arrivalIso).getTime() <= latestArrivalToday(latestArrivalTime, now).getTime() ? "on_time" : "late";
 }
 
 export function pairBusEtas(originEtas: EtaItem[], destinationEtas: EtaItem[], latestArrivalTime: string): PairedBusEta[] {

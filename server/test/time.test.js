@@ -1,11 +1,13 @@
 const assert = require("assert");
-const { classifyArrival, pairBusEtas } = require("../../dist/server/server/src/services/time");
+const { classifyArrival, minutesUntil, pairBusEtas } = require("../../dist/server/server/src/services/time");
 
 const now = new Date("2026-05-15T00:00:00.000Z");
 
 assert.strictEqual(classifyArrival("2026-05-15T00:50:00.000Z", "08:55", now), "on_time");
 assert.strictEqual(classifyArrival("2026-05-15T01:05:00.000Z", "08:55", now), "late");
 assert.strictEqual(classifyArrival(undefined, "08:55", now), "unknown");
+assert.strictEqual(minutesUntil("2026-05-15 08:05:00", new Date("2026-05-15T00:00:00.000Z")), 5);
+assert.strictEqual(minutesUntil("2026-05-15T08:05:00+08:00", new Date("2026-05-15T00:00:00.000Z")), 5);
 
 const pairs = pairBusEtas(
   [{ eta: "2026-05-15T00:10:00.000Z", minutes: 10 }],
