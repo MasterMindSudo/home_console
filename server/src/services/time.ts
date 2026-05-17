@@ -1,5 +1,7 @@
 import { EtaItem, PairedBusEta } from "../../../shared/types";
 
+const MIN_ORDER_MATCH_TRAVEL_MINUTES = 30;
+
 function hasExplicitTimezone(value: string): boolean {
   return /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
 }
@@ -45,10 +47,11 @@ export function pairBusEtas(originEtas: EtaItem[], destinationEtas: EtaItem[], l
     const nextIndex = originOrderByOperator.get(operator) || 0;
     originOrderByOperator.set(operator, nextIndex + 1);
     const sameOperatorDestinations = destinationByOperator.get(operator) || [];
+    const hasEnoughDownstreamTime = (eta: EtaItem) => eta.minutes - origin.minutes >= MIN_ORDER_MATCH_TRAVEL_MINUTES;
     const destination =
       sameOperatorDestinations.find((eta) => eta.runId && origin.runId && eta.runId === origin.runId) ||
-      sameOperatorDestinations.find((eta) => eta.etaSequence && origin.etaSequence && eta.etaSequence === origin.etaSequence && eta.minutes >= origin.minutes) ||
-      sameOperatorDestinations.slice(nextIndex).find((eta) => eta.minutes >= origin.minutes);
+      sameOperatorDestinations.find((eta) => eta.etaSequence && origin.etaSequence && eta.etaSequence === origin.etaSequence && hasEnoughDownstreamTime(eta)) ||
+      sameOperatorDestinations.slice(nextIndex).find(hasEnoughDownstreamTime);
     const projectedArrival = destination?.eta;
     const confidence = destination?.runId && origin.runId && destination.runId === origin.runId
       ? "exact"

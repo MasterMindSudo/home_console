@@ -60,4 +60,26 @@ const impossibleEarlierDestinationPairs = pairBusEtas(
 assert.strictEqual(impossibleEarlierDestinationPairs[0].destination.minutes, 45);
 assert.strictEqual(impossibleEarlierDestinationPairs[0].confidence, "operator_order");
 
+const tooCloseDestinationPairs = pairBusEtas(
+  [{ eta: "2026-05-15T00:06:00.000Z", minutes: 6, operator: "KMB", etaSequence: 1 }],
+  [
+    { eta: "2026-05-15T00:07:00.000Z", minutes: 7, operator: "KMB", etaSequence: 1 },
+    { eta: "2026-05-15T00:45:00.000Z", minutes: 45, operator: "KMB", etaSequence: 2 }
+  ],
+  "08:55"
+);
+
+assert.strictEqual(tooCloseDestinationPairs[0].destination.minutes, 45);
+assert.strictEqual(tooCloseDestinationPairs[0].confidence, "operator_order");
+
+const noPlausibleDestinationPairs = pairBusEtas(
+  [{ eta: "2026-05-15T00:06:00.000Z", minutes: 6, operator: "KMB", etaSequence: 1 }],
+  [{ eta: "2026-05-15T00:07:00.000Z", minutes: 7, operator: "KMB", etaSequence: 1 }],
+  "08:55"
+);
+
+assert.strictEqual(noPlausibleDestinationPairs[0].destination, undefined);
+assert.strictEqual(noPlausibleDestinationPairs[0].arrivalStatus, "unknown");
+assert.strictEqual(noPlausibleDestinationPairs[0].confidence, "unavailable");
+
 console.log("time service tests passed");
