@@ -71,6 +71,13 @@ export interface CarConfig {
   destination: Coordinate;
 }
 
+export interface CarRouteEstimate {
+  label: "fastest" | "toll_free";
+  travelMinutes: number;
+  arrivalTime: string;
+  usesToll: boolean;
+}
+
 export interface CommuteProfile {
   id: string;
   name: string;
@@ -128,6 +135,10 @@ export interface DashboardPayload {
     status: SourceStatus;
     travelMinutes?: number;
     arrivalTime?: string;
+    usesToll?: boolean;
+    fastest?: CarRouteEstimate;
+    tollFree?: CarRouteEstimate;
+    tollFreeDeltaMinutes?: number;
   };
   tunnel: {
     status: SourceStatus;

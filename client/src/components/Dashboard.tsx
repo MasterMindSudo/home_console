@@ -69,6 +69,42 @@ function JourneyLane({
   );
 }
 
+function CarLane({ data }: { data: DashboardPayload }) {
+  const fastest = data.car.fastest;
+  const tollFree = data.car.tollFree;
+  const delta = typeof data.car.tollFreeDeltaMinutes === "number" && data.car.tollFreeDeltaMinutes > 0
+    ? `+${data.car.tollFreeDeltaMinutes} min`
+    : "same time";
+
+  return (
+    <article className="journey-lane car-compare">
+      <div className="lane-head">
+        <div className="metric-title"><Car />By car</div>
+        <SourcePill health={data.car.status.health} updatedAt={data.car.status.updatedAt} />
+      </div>
+      <div className="car-route-grid">
+        <div className="car-route-row">
+          <div>
+            <strong>Fastest</strong>
+            <span>{fastest?.usesToll ? "Uses toll" : "No toll flagged"}</span>
+          </div>
+          <b>{formatMinutes(fastest?.travelMinutes || data.car.travelMinutes)}</b>
+          <span>{formatClock(fastest?.arrivalTime || data.car.arrivalTime)}</span>
+        </div>
+        <div className="car-route-row">
+          <div>
+            <strong>{tollFree?.usesToll ? "Less toll" : "Toll-free"}</strong>
+            <span>{tollFree ? delta : "Not available"}</span>
+          </div>
+          <b>{formatMinutes(tollFree?.travelMinutes)}</b>
+          <span>{formatClock(tollFree?.arrivalTime)}</span>
+        </div>
+      </div>
+      {data.car.status.message && <p className="muted lane-message">{data.car.status.message}</p>}
+    </article>
+  );
+}
+
 export function Dashboard({ data }: Props) {
   const firstBus = data.bus.pairs[0];
   const busTravelMinutes =
@@ -112,16 +148,7 @@ export function Dashboard({ data }: Props) {
             markers={8}
             message="Next train plus configured average ride/interchange time, excluding walking"
           />
-          <JourneyLane
-            icon={<Car />}
-            title="By car"
-            status={<SourcePill health={data.car.status.health} updatedAt={data.car.status.updatedAt} />}
-            startMinutes={0}
-            endMinutes={data.car.travelMinutes}
-            endLabel={`drive · arrive ${formatClock(data.car.arrivalTime)}`}
-            markers={5}
-            message={data.car.status.message || "TomTom live traffic route"}
-          />
+          <CarLane data={data} />
         </div>
 
         <aside className="traffic-panel">

@@ -165,6 +165,36 @@ button { cursor: pointer; }
 .lane-message {
   margin: 10px 0 0;
 }
+.car-compare {
+  display: grid;
+  gap: 12px;
+}
+.car-route-grid {
+  display: grid;
+  gap: 10px;
+}
+.car-route-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 110px 110px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #dfe6df;
+  border-radius: 8px;
+  background: white;
+}
+.car-route-row strong,
+.car-route-row span {
+  display: block;
+}
+.car-route-row div span,
+.car-route-row > span {
+  color: #60706b;
+  font-size: 13px;
+}
+.car-route-row b {
+  font-size: 28px;
+}
 .traffic-panel {
   background: white;
   border: 1px solid #dfe6df;
@@ -317,5 +347,6 @@ legend { font-weight: 900; padding: 0 8px; }
   .metric-grid, .grid-two { grid-template-columns: 1fr; }
   .lane-head, .lane-body { grid-template-columns: 1fr; }
   .lane-head { align-items: start; }
+  .car-route-row { grid-template-columns: 1fr; }
   .eta-table { grid-template-columns: 1fr; }
 }

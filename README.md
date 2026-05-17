@@ -29,3 +29,14 @@ npm run build      # TypeScript server + production client bundle
 npm test           # Build server and run core time/ETA pairing tests
 npm run start      # Start built API server
 ```
+
+## Render
+
+Use a Node Web Service with:
+
+```bash
+npm ci && npm run build
+npm run start
+```
+
+Set `NODE_VERSION=18.20.4` if Render does not pick up `.node-version`.
