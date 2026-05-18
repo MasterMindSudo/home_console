@@ -6,6 +6,13 @@ Local web dashboard for household commute decisions in Hong Kong. V1 focuses on 
 
 Long-term project notes for future Codex sessions live in `.codex/memory.md`. Read it first when chat history is missing or compacted.
 
+## Branch Workflow
+
+- Use `dev` for ongoing development.
+- Keep `main` as the production/release branch.
+- Merge to `main` only for major or stable updates.
+- Trigger Render redeployment only after a deliberate `main` release merge, unless an emergency production fix is requested.
+
 ## Setup
 
 ```bash

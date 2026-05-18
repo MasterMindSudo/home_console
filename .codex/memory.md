@@ -6,7 +6,8 @@ Read this file at the start of future Codex sessions when the chat context is mi
 
 - Repo/workspace: `c:\Users\Kevin\Documents\Project\bus_eta`
 - GitHub remote: `https://github.com/MasterMindSudo/home_console.git`
-- Main branch: `main`
+- Production branch: `main`
+- Development branch: `dev`
 - App name: Household Transit Dashboard / home console
 - Primary user: Kevin
 - Purpose: iPad/static-display web dashboard for household commute decisions in Hong Kong.
@@ -38,6 +39,10 @@ Read this file at the start of future Codex sessions when the chat context is mi
 
 ## Deployment Notes
 
+- Normal development should happen on `dev`.
+- Do not push every small change to `main`.
+- Only merge `dev` to `main` for deliberate major/stable releases.
+- Trigger Render redeployment only after merging a release to `main`, unless Kevin explicitly asks for an emergency prod deploy.
 - Render service should be a Node Web Service, not a Static Site.
 - Build command: `npm ci && npm run build`
 - Start command: `npm run start`
@@ -117,5 +122,5 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - Use `apply_patch` for file edits.
 - Avoid leaking `.env` or deploy hook values.
 - Before pushing, run at least `npm run typecheck`; for dashboard/backend changes also run `npm test` and `npm run build`.
-- Commit to `main` and push when the user asks for implemented production changes.
-
+- Commit normal work to `dev` and push `dev`.
+- Keep `main` for release merges only. After a release merge to `main`, trigger Render redeployment if Kevin wants prod updated.
