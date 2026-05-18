@@ -100,7 +100,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
   - Matched cards are de-duplicated by HK road name.
   - Eastern Harbour to Aberdeen/Stubbs trips expand sparse TomTom guidance with the expected road order before HK speed matching.
   - Matching uses indexed road lookups and caps route candidates so a debug request cannot wedge the Fastify event loop.
-  - Traffic camera snapshots use `Traffic_Camera_Locations_En.csv` metadata and `tdcctv.data.one.gov.hk/{key}.JPG`; matched cameras render inside road cards, and camera-only cards are inserted in route order when no speed segment card exists.
+  - Traffic camera snapshots use `Traffic_Camera_Locations_En.csv` metadata and `tdcctv.data.one.gov.hk/{key}.JPG`; matched cameras attach to speed-flow roads, and camera-only cards are inserted in route order when no speed segment card exists.
   - Frontend appends a 2-minute cache-buster to traffic camera image URLs so snapshots refresh without extra backend calls.
 - Weather:
   - Adapter: `server/src/adapters/weather.ts`
@@ -131,7 +131,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
   - Bus lane with previous stop, origin ETA, route track, destination/ride estimate.
   - MTR lane.
   - Car comparison rows.
-  - Blue road-sign inspired traffic-flow side panel.
+  - Blue road-sign inspired traffic-flow side panel with compact speed cards and one enlarged camera feed rotating every 5 seconds in card/route order.
 - Upcoming bus pairings table below.
 - Large display CSS breakpoint starts at `1600px x 900px` and is tuned for `1920x1080`.
 

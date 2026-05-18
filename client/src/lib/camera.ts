@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 const CAMERA_REFRESH_MS = 2 * 60 * 1000;
+const CAMERA_ROTATE_MS = 5 * 1000;
 
 function cameraBucket(now = Date.now()): number {
   return Math.floor(now / CAMERA_REFRESH_MS);
@@ -31,4 +32,19 @@ export function useCameraRefreshToken(): number {
 export function cameraImageUrl(url: string, token: number): string {
   const separator = url.includes("?") ? "&" : "?";
   return `${url}${separator}v=${token}`;
+}
+
+export function useRotatingIndex(count: number): number {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+    if (count <= 1) return;
+    const interval = window.setInterval(() => {
+      setIndex((current) => (current + 1) % count);
+    }, CAMERA_ROTATE_MS);
+    return () => window.clearInterval(interval);
+  }, [count]);
+
+  return count ? Math.min(index, count - 1) : 0;
 }

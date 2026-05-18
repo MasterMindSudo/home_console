@@ -264,11 +264,14 @@ button { cursor: pointer; }
   border-radius: 8px;
   padding: 18px;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 14px;
   box-shadow: 0 8px 24px rgba(13, 32, 25, .06);
+  min-height: 0;
 }
 .traffic-panel.flow-board {
-  align-content: start;
+  align-content: stretch;
+  overflow: hidden;
 }
 .traffic-flow-head {
   display: flex;
@@ -279,6 +282,13 @@ button { cursor: pointer; }
 .traffic-flow-grid {
   display: grid;
   gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+.compact-speed-grid {
+  align-content: start;
 }
 .traffic-flow-card {
   border-radius: 8px;
@@ -327,6 +337,39 @@ button { cursor: pointer; }
 }
 .traffic-flow-card.camera-only {
   background: linear-gradient(180deg, #204c72 0%, #123a5c 100%);
+}
+.featured-traffic-camera {
+  margin: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #102826;
+  border: 1px solid #dfe6df;
+  color: white;
+  box-shadow: 0 8px 18px rgba(13, 32, 25, .12);
+}
+.featured-traffic-camera img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #203633;
+}
+.featured-traffic-camera figcaption {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+}
+.featured-traffic-camera strong,
+.featured-traffic-camera span {
+  display: block;
+}
+.featured-traffic-camera strong {
+  font-size: 14px;
+}
+.featured-traffic-camera span {
+  color: #d2e0dc;
+  font-size: 12px;
+  line-height: 1.25;
 }
 .traffic-camera-list {
   display: grid;
@@ -680,7 +723,7 @@ legend { font-weight: 900; padding: 0 8px; }
   }
   .journey-board {
     min-height: 0;
-    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-columns: minmax(0, 1fr) 420px;
   }
   .journey-main,
   .traffic-panel {
@@ -699,6 +742,19 @@ legend { font-weight: 900; padding: 0 8px; }
   }
   .traffic-feed {
     min-height: 108px;
+  }
+  .traffic-flow-card {
+    padding: 10px;
+    gap: 8px;
+  }
+  .traffic-flow-card strong {
+    font-size: 15px;
+  }
+  .traffic-flow-card b {
+    font-size: 20px;
+  }
+  .featured-traffic-camera img {
+    max-height: 230px;
   }
   .board {
     padding: 14px 18px;
