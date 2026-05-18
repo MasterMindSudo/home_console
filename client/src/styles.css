@@ -266,6 +266,74 @@ button { cursor: pointer; }
   gap: 14px;
   box-shadow: 0 8px 24px rgba(13, 32, 25, .06);
 }
+.traffic-panel.flow-board {
+  align-content: start;
+}
+.traffic-flow-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.traffic-flow-grid {
+  display: grid;
+  gap: 10px;
+}
+.traffic-flow-card {
+  border-radius: 8px;
+  padding: 12px;
+  color: white;
+  background: linear-gradient(180deg, #14599a 0%, #0e4278 100%);
+  border: 1px solid rgba(255,255,255,.22);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+  display: grid;
+  gap: 10px;
+}
+.traffic-flow-card strong,
+.traffic-flow-card span,
+.traffic-flow-card small,
+.traffic-flow-card b {
+  display: block;
+}
+.traffic-flow-card strong {
+  font-size: 17px;
+  line-height: 1.2;
+}
+.traffic-flow-card span,
+.traffic-flow-card small {
+  color: rgba(255,255,255,.78);
+  font-size: 12px;
+}
+.traffic-flow-card b {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #f4d03f;
+  color: #102826;
+  font-size: 22px;
+  line-height: 1;
+}
+.traffic-flow-card.moderate b {
+  background: #f0a33a;
+}
+.traffic-flow-card.slow b,
+.traffic-flow-card.stale b {
+  background: #e95d4f;
+  color: white;
+}
+.traffic-flow-empty {
+  min-height: 220px;
+  display: grid;
+  align-items: center;
+  border-radius: 8px;
+  border: 1px dashed #b9c5bc;
+  background: #f6f8f6;
+  padding: 14px;
+  color: #60706b;
+}
 .traffic-grid {
   display: grid;
   grid-template-columns: 1fr;

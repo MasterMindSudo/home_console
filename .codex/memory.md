@@ -67,6 +67,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - MTR estimate excludes walking time.
 - Car setup uses map pins/coordinates, not manual address entry.
 - Car ETA shows fastest and less-toll/toll-free style options.
+- Traffic pane uses TomTom route guidance road names matched to HK Gov speed segment data; this is approximate context, not geometry matching.
 - Weather uses hourly cards, not a line chart, because temp/humidity/rain have incompatible scales.
 
 ## Data Sources And Adapters
@@ -84,7 +85,12 @@ Read this file at the start of future Codex sessions when the chat context is mi
   - Uses TomTom Routing API server-side only.
 - Tunnel:
   - Adapter: `server/src/adapters/tunnel.ts`
-  - HK journey-time indicator support exists, but profile may be not configured.
+  - Legacy HK journey-time indicator support exists, but it is no longer rendered in the dashboard.
+- Traffic flow:
+  - Adapter: `server/src/adapters/trafficFlow.ts`
+  - Uses `irnAvgSpeed-all.xml` live speeds and `speed_segments_info.csv` segment road names.
+  - TomTom fastest-route guidance road names are normalized and matched to HK segment `route` names.
+  - Numeric routes only match exact TomTom road-number candidates.
 - Weather:
   - Adapter: `server/src/adapters/weather.ts`
   - Uses Open-Meteo for Hong Kong hourly temp, relative humidity, precipitation.
@@ -114,7 +120,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
   - Bus lane with previous stop, origin ETA, route track, destination/ride estimate.
   - MTR lane.
   - Car comparison rows.
-  - Traffic/tunnel side panel.
+  - Blue road-sign inspired traffic-flow side panel.
 - Upcoming bus pairings table below.
 - Large display CSS breakpoint starts at `1600px x 900px` and is tuned for `1920x1080`.
 

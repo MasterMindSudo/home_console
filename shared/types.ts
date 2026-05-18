@@ -78,6 +78,17 @@ export interface CarRouteEstimate {
   usesToll: boolean;
 }
 
+export type TrafficFlowStatus = "smooth" | "moderate" | "slow" | "stale";
+
+export interface TrafficFlowRoad {
+  roadName: string;
+  representativeSpeedKph?: number;
+  slowestSpeedKph?: number;
+  validSegmentCount: number;
+  invalidSegmentCount: number;
+  status: TrafficFlowStatus;
+}
+
 export interface CommuteProfile {
   id: string;
   name: string;
@@ -158,6 +169,11 @@ export interface DashboardPayload {
     minutes?: number;
     trafficStatus?: string;
     indicatorName?: string;
+  };
+  trafficFlow: {
+    status: SourceStatus;
+    roads: TrafficFlowRoad[];
+    matchedRoadNames: string[];
   };
 }
 

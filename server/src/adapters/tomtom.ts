@@ -11,11 +11,20 @@ interface CarResult {
   fastest?: CarRouteEstimate;
   tollFree?: CarRouteEstimate;
   tollFreeDeltaMinutes?: number;
+  routeRoadNames?: string[];
 }
 
 interface TomTomRoute {
   summary?: {
     travelTimeInSeconds?: number;
+  };
+  guidance?: {
+    instructions?: Array<{
+      street?: string;
+      roadNumbers?: string[];
+      signpostText?: string;
+      message?: string;
+    }>;
   };
   sections?: Array<{
     sectionType?: string;
@@ -33,17 +42,41 @@ function hasTollSection(route?: TomTomRoute): boolean {
   }));
 }
 
-async function calculateCarRoute(car: CarConfig, label: "fastest" | "toll_free"): Promise<CarRouteEstimate> {
+function extractRoadNames(route?: TomTomRoute): string[] {
+  const seen = new Set<string>();
+  const roads: string[] = [];
+  (route?.guidance?.instructions || []).forEach((instruction) => {
+    const candidates = [
+      instruction.street,
+      ...(instruction.roadNumbers || []),
+      instruction.signpostText,
+      instruction.message
+    ];
+    candidates.forEach((candidate) => {
+      const value = (candidate || "").trim();
+      if (!value || seen.has(value)) return;
+      seen.add(value);
+      roads.push(value);
+    });
+  });
+  return roads;
+}
+
+async function calculateCarRoute(car: CarConfig, label: "fastest" | "toll_free"): Promise<CarRouteEstimate & { routeRoadNames?: string[] }> {
   const points = `${car.origin.lat},${car.origin.lng}:${car.destination.lat},${car.destination.lng}`;
   const params = new URLSearchParams({
     traffic: "true",
     travelMode: "car",
     routeType: "fastest",
     routeRepresentation: "summaryOnly",
+    language: "en-GB",
     sectionType: "toll",
     includeTollPaymentTypes: "all",
     key: config.tomtomApiKey
   });
+  if (label === "fastest") {
+    params.append("instructionsType", "text");
+  }
   if (label === "toll_free") {
     params.append("avoid", "tollRoads");
   }
@@ -59,7 +92,8 @@ async function calculateCarRoute(car: CarConfig, label: "fastest" | "toll_free")
     label,
     travelMinutes,
     arrivalTime: minutesToArrival(travelMinutes),
-    usesToll: hasTollSection(route)
+    usesToll: hasTollSection(route),
+    routeRoadNames: label === "fastest" ? extractRoadNames(route) : undefined
   };
 }
 
@@ -83,7 +117,8 @@ export async function getCarEta(car?: CarConfig): Promise<CarResult> {
       usesToll: fastest.usesToll,
       fastest,
       tollFree,
-      tollFreeDeltaMinutes
+      tollFreeDeltaMinutes,
+      routeRoadNames: fastest.routeRoadNames || []
     };
   } catch (error) {
     return { status: { health: "error", updatedAt: new Date().toISOString(), message: error instanceof Error ? error.message : "TomTom route failed." } };

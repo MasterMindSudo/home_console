@@ -3,21 +3,21 @@ import { getProfile } from "../db/profiles";
 import { getBusEtas } from "../adapters/bus";
 import { getMtrEstimate } from "../adapters/mtr";
 import { getCarEta } from "../adapters/tomtom";
-import { getTunnelIndicator } from "../adapters/tunnel";
 import { getHourlyWeather } from "../adapters/weather";
+import { getTrafficFlow } from "../adapters/trafficFlow";
 import { pairBusEtas } from "./time";
 
 export async function buildDashboard(profileId: string): Promise<DashboardPayload | undefined> {
   const profile = getProfile(profileId);
   if (!profile) return undefined;
 
-  const [weather, busResult, mtr, car, tunnel] = await Promise.all([
+  const [weather, busResult, mtr, car] = await Promise.all([
     getHourlyWeather(),
     getBusEtas(profile.bus),
     getMtrEstimate(profile.mtr),
-    getCarEta(profile.car),
-    getTunnelIndicator(profile.tunnelIndicatorId)
+    getCarEta(profile.car)
   ]);
+  const trafficFlow = await getTrafficFlow(car.routeRoadNames || []);
 
   const pairs = pairBusEtas(busResult.originEtas, busResult.destinationEtas, profile.latestArrivalTime);
   const firstStatus = pairs[0]?.arrivalStatus;
@@ -30,6 +30,7 @@ export async function buildDashboard(profileId: string): Promise<DashboardPayloa
     bus: { ...busResult, pairs },
     mtr,
     car,
-    tunnel
+    tunnel: { status: { health: "not_configured", message: "Tunnel pane replaced by route traffic flow." } },
+    trafficFlow
   };
 }

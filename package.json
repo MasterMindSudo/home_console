@@ -11,7 +11,7 @@
     "build:server": "tsc -p server/tsconfig.json",
     "build:client": "vite build --config client/vite.config.ts",
     "start": "node dist/server/server/src/index.js",
-    "test": "npm run build:server && node server/test/time.test.js",
+    "test": "npm run build:server && node server/test/time.test.js && node server/test/trafficFlow.test.js",
     "typecheck": "tsc -p server/tsconfig.json --noEmit && tsc -p client/tsconfig.json --noEmit"
   },
   "dependencies": {

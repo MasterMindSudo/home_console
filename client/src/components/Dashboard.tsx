@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
-import { AlertTriangle, Bus, Clock, CloudRain, Droplets, Car as CarIcon, Thermometer, TrainFront, Waves } from "lucide-react";
+import { AlertTriangle, Bus, Clock, CloudRain, Droplets, Car as CarIcon, Gauge, Thermometer, TrainFront, Waves } from "lucide-react";
 import { DashboardPayload, EtaItem } from "../../../shared/types";
 import { formatClock, formatMinutes, formatUpdated } from "../lib/format";
 
@@ -167,6 +167,39 @@ function CarLane({ data }: { data: DashboardPayload }) {
   );
 }
 
+function speedLabel(value?: number): string {
+  return typeof value === "number" ? `${Math.round(value)} km/h` : "--";
+}
+
+function TrafficFlowPane({ data }: { data: DashboardPayload }) {
+  return (
+    <aside className="traffic-panel flow-board">
+      <div className="traffic-flow-head">
+        <div className="metric-title"><Waves /> Traffic flow</div>
+        <SourcePill health={data.trafficFlow.status.health} updatedAt={data.trafficFlow.status.updatedAt} />
+      </div>
+      {data.trafficFlow.roads.length ? (
+        <div className="traffic-flow-grid">
+          {data.trafficFlow.roads.map((road) => (
+            <article key={road.roadName} className={`traffic-flow-card ${road.status}`}>
+              <div>
+                <strong>{road.roadName}</strong>
+                <span>{road.validSegmentCount} live segments · {road.invalidSegmentCount} stale</span>
+              </div>
+              <b><Gauge size={18} /> {speedLabel(road.representativeSpeedKph)}</b>
+              <small>Slowest {speedLabel(road.slowestSpeedKph)}</small>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="traffic-flow-empty">
+          <p>{data.trafficFlow.status.message || "No matching HK speed segments for this TomTom route."}</p>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 export function Dashboard({ data }: Props) {
   const firstBus = data.bus.pairs[0];
   const previousBus = findPreviousEta(firstBus?.origin, data.bus.previousEtas);
@@ -224,23 +257,7 @@ export function Dashboard({ data }: Props) {
           <CarLane data={data} />
         </div>
 
-        <aside className="traffic-panel">
-          <div className="metric-title"><Waves /> Traffic</div>
-          <SourcePill health={data.tunnel.status.health} updatedAt={data.tunnel.status.updatedAt} />
-          <div className="traffic-grid">
-            <div>
-              <span>{data.tunnel.indicatorName || "Tunnel indicator"}</span>
-              <strong>{formatMinutes(data.tunnel.minutes)}</strong>
-            </div>
-            <div>
-              <span>Status</span>
-              <strong>{data.tunnel.trafficStatus || "--"}</strong>
-            </div>
-          </div>
-          <div className="traffic-feed">
-            <p>{data.tunnel.status.message || "Live traffic camera/feed placeholder for the selected crossing."}</p>
-          </div>
-        </aside>
+        <TrafficFlowPane data={data} />
       </section>
 
       <section className="board">
