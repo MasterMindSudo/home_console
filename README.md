@@ -2,6 +2,10 @@
 
 Local web dashboard for household commute decisions in Hong Kong. V1 focuses on a glanceable iPad/static-display transit screen with saved commute profiles, bus ETAs, MTR next-train based estimates, TomTom driving ETA, and cross-harbour journey-time context.
 
+## Workspace Memory
+
+Long-term project notes for future Codex sessions live in `.codex/memory.md`. Read it first when chat history is missing or compacted.
+
 ## Setup
 
 ```bash
