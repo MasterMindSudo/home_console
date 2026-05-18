@@ -7,7 +7,7 @@ import { getProfile } from "../db/profiles";
 export async function debugRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { profileId: string }; Querystring: { force?: string; tollFree?: string } }>("/api/debug/traffic-flow/:profileId", async (request, reply) => {
     const startedAt = Date.now();
-    const profile = getProfile(request.params.profileId);
+    const profile = await getProfile(request.params.profileId);
     if (!profile) return reply.code(404).send({ error: "Profile not found." });
 
     const forceRefresh = request.query.force !== "false";

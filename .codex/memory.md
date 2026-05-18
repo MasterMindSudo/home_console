@@ -18,8 +18,8 @@ Read this file at the start of future Codex sessions when the chat context is mi
 
 - Frontend: React + Vite + TypeScript.
 - Backend: Node/Fastify + TypeScript.
-- Storage: SQLite via `better-sqlite3`.
-- Local DB path: `data/dashboard.sqlite`.
+- Storage: Postgres via `DATABASE_URL` when configured, otherwise SQLite via `better-sqlite3`.
+- Local SQLite fallback path: `data/dashboard.sqlite`.
 - Shared types live in `shared/types.ts`.
 - Main dashboard assembly: `server/src/services/dashboard.ts`.
 - Backend entrypoint: `server/src/index.ts`.
@@ -52,7 +52,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - Optional TomTom backup key env aliases: `TOMTOM_BACKUP_API_KEY`, `TOMTOM_API_KEY_BACKUP`, `TOMTOM_BACKUP_KEY`, `TOMTOM_FALLBACK_API_KEY`, `TOMTOM_API_KEY_2`, `TOMTOM_SECONDARY_API_KEY`, `TOMTOM_SECONDARY_KEY`, or `TOMTOM_BACKUP`.
 - Restart the dev server after `.env` changes because keys are read on backend startup.
 - `.env` is local and gitignored. Never reveal or commit secrets from it.
-- SQLite storage on Render free/ephemeral instances may not be durable. Profiles can disappear after redeploy/restart unless persistent storage or a hosted DB is added later.
+- On Render, set `DATABASE_URL` to Postgres so profiles persist across inactivity restarts. SQLite is now local fallback only.
 
 ## Important Product Decisions
 

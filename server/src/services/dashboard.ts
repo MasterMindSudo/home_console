@@ -8,7 +8,7 @@ import { getTrafficFlow } from "../adapters/trafficFlow";
 import { pairBusEtas } from "./time";
 
 export async function buildDashboard(profileId: string): Promise<DashboardPayload | undefined> {
-  const profile = getProfile(profileId);
+  const profile = await getProfile(profileId);
   if (!profile) return undefined;
 
   const [weather, busResult, mtr, car] = await Promise.all([

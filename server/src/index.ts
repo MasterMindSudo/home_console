@@ -35,7 +35,7 @@ function resolveClientAsset(urlPath: string): string {
 }
 
 async function main(): Promise<void> {
-  initDatabase();
+  await initDatabase();
   const app = Fastify({ logger: true });
 
   await app.register(cors, { origin: config.clientOrigin });

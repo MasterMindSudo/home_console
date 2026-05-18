@@ -27,7 +27,12 @@ Open the client at `http://localhost:5173`.
 
 - Put your main TomTom key in `.env` as `TOMTOM_API_KEY`. Optional backup aliases are `TOMTOM_BACKUP_API_KEY`, `TOMTOM_API_KEY_BACKUP`, or `TOMTOM_BACKUP_KEY`.
 - Restart the dev server after changing `.env`; the backend only reads TomTom keys at startup.
-- Profiles are stored locally in SQLite at `data/dashboard.sqlite`.
+- Profile storage auto-selects by env:
+  - `DATABASE_URL` set: use Postgres (recommended on Render).
+  - `DATABASE_URL` empty: use local SQLite at `data/dashboard.sqlite`.
+- Optional `DATABASE_SSL`:
+  - `require` / `true` enables SSL with `rejectUnauthorized: false` (typical for Render external hostnames).
+  - `disable` / `false` turns SSL off (typical for trusted internal/private networks).
 - Bus setup starts from route number, then loads directions and stop-name choices. The app hides official stop IDs in the UI but stores them internally because the ETA APIs require them.
 - Co-operated routes can merge operators such as KMB + Citybus and keep each operator's own direction/stop IDs behind one visible route direction.
 - MTR setup uses start and destination stations; the app resolves the first train line/direction and indicative route automatically.
