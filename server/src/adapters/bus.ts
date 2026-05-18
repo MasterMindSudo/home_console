@@ -220,7 +220,29 @@ function normalizeName(value: string): string {
 }
 
 function nameTokens(value: string): Set<string> {
-  return new Set(normalizeName(value).split(" ").filter((token) => token.length > 2));
+  return new Set(normalizeName(value).split(" ").filter((token) => token.length > 1));
+}
+
+const GENERIC_TERMINAL_TOKENS = new Set(["BUS", "EAST", "EXIT", "MTR", "STATION", "TERMINUS", "WEST"]);
+
+function compactName(value: string): string {
+  return normalizeName(value).replace(/\s+/g, "");
+}
+
+function distinctiveTokens(value: string): string[] {
+  return Array.from(nameTokens(value)).filter((token) => !GENERIC_TERMINAL_TOKENS.has(token) && token.length >= 5);
+}
+
+function includesTerminalName(longer: string, shorter: string): boolean {
+  if (shorter.length < 5) return false;
+  if (nameTokens(shorter).size < 2) return false;
+  return longer.includes(shorter);
+}
+
+function matchesSingleDistinctiveTerminal(a: string, b: string): boolean {
+  const left = distinctiveTokens(a);
+  const right = distinctiveTokens(b);
+  return left.length === 1 && right.length === 1 && left[0] === right[0];
 }
 
 export function terminalNamesMatch(a: string, b: string): boolean {
@@ -228,15 +250,16 @@ export function terminalNamesMatch(a: string, b: string): boolean {
   const right = normalizeName(b);
   if (!left || !right) return false;
   if (left === right) return true;
-  if (left.length >= 8 && right.includes(left)) return true;
-  if (right.length >= 8 && left.includes(right)) return true;
+  if (compactName(left) === compactName(right)) return true;
+  if (includesTerminalName(right, left) || includesTerminalName(left, right)) return true;
+  if (matchesSingleDistinctiveTerminal(left, right)) return true;
 
   const leftTokens = nameTokens(left);
   const rightTokens = nameTokens(right);
   const smaller = Math.min(leftTokens.size, rightTokens.size);
   if (!smaller) return false;
   const overlap = Array.from(leftTokens).filter((token) => rightTokens.has(token)).length;
-  return overlap / smaller >= 0.75;
+  return overlap >= 2 && overlap / smaller >= 2 / 3;
 }
 
 function directionsMatch(choice: BusDirectionChoice, origin: string, destination: string): boolean {
