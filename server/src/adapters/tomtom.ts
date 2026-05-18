@@ -27,6 +27,7 @@ interface CachedCarResult {
 
 interface CarEtaOptions {
   forceRefresh?: boolean;
+  ignoreArrivalStop?: boolean;
 }
 
 interface TomTomRoute {
@@ -218,7 +219,7 @@ export async function getCarEta(car?: CarConfig, latestArrivalTime?: string, opt
   const now = Date.now();
   const refreshMs = tomtomRefreshMs();
   const refreshMinutes = Math.round(refreshMs / 60000);
-  if (stoppedAfterArrival(latestArrivalTime, new Date(now))) {
+  if (!options.ignoreArrivalStop && stoppedAfterArrival(latestArrivalTime, new Date(now))) {
     return cached
       ? withStatusMessage(cached.result, "TomTom refresh stopped after latest-arrival target.", "stale")
       : { status: { health: "not_configured", message: "TomTom refresh stopped after latest-arrival target." }, routeRoadNames: [] };

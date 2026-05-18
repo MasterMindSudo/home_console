@@ -10,7 +10,7 @@ export async function debugRoutes(app: FastifyInstance): Promise<void> {
     if (!profile) return reply.code(404).send({ error: "Profile not found." });
 
     const forceRefresh = request.query.force === "true";
-    const car = await getCarEta(profile.car, profile.latestArrivalTime, { forceRefresh });
+    const car = await getCarEta(profile.car, profile.latestArrivalTime, { forceRefresh, ignoreArrivalStop: true });
     const routeRoadNames = car.routeRoadNames || [];
     const trafficFlow = await getTrafficFlow(routeRoadNames);
 
