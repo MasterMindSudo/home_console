@@ -1,5 +1,5 @@
 const assert = require("assert");
-const { isTomTomQuotaError, stoppedAfterArrival, tomtomRefreshMs, tomtomRuntimeInfo } = require("../../dist/server/server/src/adapters/tomtom");
+const { extractRoadNames, isTomTomQuotaError, stoppedAfterArrival, tomtomRefreshMs, tomtomRuntimeInfo } = require("../../dist/server/server/src/adapters/tomtom");
 
 assert.strictEqual(stoppedAfterArrival("09:00", new Date("2026-05-18T00:59:00.000Z")), false);
 assert.strictEqual(stoppedAfterArrival("09:00", new Date("2026-05-18T01:01:00.000Z")), true);
@@ -20,5 +20,16 @@ assert.strictEqual(typeof runtimeInfo.primaryConfigured, "boolean");
 assert.strictEqual(typeof runtimeInfo.backupConfigured, "boolean");
 assert.strictEqual(typeof runtimeInfo.refreshMinutes, "number");
 assert.strictEqual(typeof runtimeInfo.primaryQuotaBlocked, "boolean");
+
+const extractedRoads = extractRoadNames({
+  guidance: {
+    instructions: [
+      { street: "Lei Yue Mun Road/2", message: "Keep right at Lei Yue Mun Road/2 toward Hong Kong ( E )" },
+      { street: "Island Eastern Corridor", message: "Take exit 10 onto Island Eastern Corridor/4 toward Causeway Bay" },
+      { street: "7", message: "Keep right toward Route 7" }
+    ]
+  }
+});
+assert.deepStrictEqual(extractedRoads, ["Lei Yue Mun Road", "Island Eastern Corridor"]);
 
 console.log("tomtom refresh tests passed");
