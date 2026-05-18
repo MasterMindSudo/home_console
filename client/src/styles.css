@@ -46,8 +46,8 @@ button { cursor: pointer; }
 .sidebar-actions { display: grid; gap: 10px; margin-top: auto; }
 .sidebar-actions button { display: flex; align-items: center; gap: 10px; }
 
-.content { padding: 28px; }
-.dashboard { display: grid; gap: 20px; }
+.content { padding: 28px; min-width: 0; }
+.dashboard { display: grid; gap: 20px; min-width: 0; }
 .hero-state {
   min-height: 210px;
   border-radius: 8px;
@@ -76,6 +76,8 @@ button { cursor: pointer; }
   border-radius: 8px;
   padding: 16px 18px;
   box-shadow: 0 8px 24px rgba(13, 32, 25, .06);
+  min-width: 0;
+  overflow: hidden;
 }
 .weather-head {
   display: flex;
@@ -87,7 +89,10 @@ button { cursor: pointer; }
 .weather-hours {
   display: flex;
   gap: 10px;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: 4px;
   scroll-snap-type: x proximity;
   scrollbar-width: thin;

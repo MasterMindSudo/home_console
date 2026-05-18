@@ -103,7 +103,8 @@ function WeatherPane({ data }: { data: DashboardPayload }) {
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || !hours.length) return;
-    container.scrollLeft = Math.max(0, currentIndex * 132 - container.clientWidth * 0.18);
+    const currentCard = container.querySelector<HTMLElement>("[data-current-hour='true']");
+    container.scrollLeft = currentCard?.offsetLeft || currentIndex * 132;
   }, [currentIndex, hours.length]);
 
   return (
@@ -115,7 +116,7 @@ function WeatherPane({ data }: { data: DashboardPayload }) {
       {hours.length ? (
         <div className="weather-hours" ref={scrollRef}>
           {hours.map((hour, index) => (
-            <article key={hour.time} className={index === currentIndex ? "weather-hour current" : "weather-hour"}>
+            <article key={hour.time} className={index === currentIndex ? "weather-hour current" : "weather-hour"} data-current-hour={index === currentIndex ? "true" : undefined}>
               <strong>{formatClock(hour.time)}</strong>
               <span><Thermometer size={15} /> {hour.temperatureC}C</span>
               <span><Droplets size={15} /> {hour.humidityPercent}%</span>
