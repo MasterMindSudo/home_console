@@ -13,3 +13,7 @@ export function formatUpdated(iso?: string): string {
   if (!iso) return "Not updated";
   return `Updated ${formatClock(iso)}`;
 }
+
+export function formatSpeedKph(value?: number): string {
+  return typeof value === "number" ? `${Math.round(value)} km/h` : "--";
+}

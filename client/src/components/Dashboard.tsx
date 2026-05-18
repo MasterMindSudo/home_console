@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AlertTriangle, Bus, Clock, CloudRain, Droplets, Car as CarIcon, Gauge, Thermometer, TrainFront, Waves } from "lucide-react";
 import { DashboardPayload, EtaItem, TrafficCamera } from "../../../shared/types";
 import { cameraImageUrl, useCameraRefreshToken, useRotatingIndex } from "../lib/camera";
-import { formatClock, formatMinutes, formatUpdated } from "../lib/format";
+import { formatClock, formatMinutes, formatSpeedKph, formatUpdated } from "../lib/format";
 
 interface Props {
   data: DashboardPayload;
@@ -168,10 +168,6 @@ function CarLane({ data }: { data: DashboardPayload }) {
   );
 }
 
-function speedLabel(value?: number): string {
-  return typeof value === "number" ? `${Math.round(value)} km/h` : "--";
-}
-
 function TrafficFlowPane({ data }: { data: DashboardPayload }) {
   const cameraToken = useCameraRefreshToken();
   const cameras = useMemo(
@@ -204,8 +200,8 @@ function TrafficFlowPane({ data }: { data: DashboardPayload }) {
                 </div>
                 {!road.cameraOnly && (
                   <>
-                    <b><Gauge size={18} /> {speedLabel(road.representativeSpeedKph)}</b>
-                    <small>Slowest {speedLabel(road.slowestSpeedKph)}</small>
+                    <b><Gauge size={18} /> {formatSpeedKph(road.representativeSpeedKph)}</b>
+                    <small>Slowest {formatSpeedKph(road.slowestSpeedKph)}</small>
                   </>
                 )}
               </article>

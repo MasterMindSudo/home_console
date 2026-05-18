@@ -45,6 +45,17 @@ function createId(): string {
   return randomBytes(16).toString("hex");
 }
 
+function profileColumns(input: ProfileInput): Array<string | null> {
+  return [
+    input.name.trim(),
+    input.latestArrivalTime,
+    input.bus ? JSON.stringify(input.bus) : null,
+    input.mtr ? JSON.stringify(input.mtr) : null,
+    input.car ? JSON.stringify(input.car) : null,
+    input.tunnelIndicatorId || null
+  ];
+}
+
 export async function listProfiles(): Promise<CommuteProfile[]> {
   if (usePostgres && pgPool) {
     const result = await pgPool.query<ProfileRow>("SELECT * FROM profiles ORDER BY updated_at DESC");
@@ -67,6 +78,7 @@ export async function createProfile(input: ProfileInput): Promise<CommuteProfile
   validate(input);
   const now = new Date().toISOString();
   const id = createId();
+  const [name, latestArrivalTime, busJson, mtrJson, carJson, tunnelIndicatorId] = profileColumns(input);
   if (usePostgres && pgPool) {
     await pgPool.query(
       `INSERT INTO profiles (
@@ -75,12 +87,12 @@ export async function createProfile(input: ProfileInput): Promise<CommuteProfile
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         id,
-        input.name.trim(),
-        input.latestArrivalTime,
-        input.bus ? JSON.stringify(input.bus) : null,
-        input.mtr ? JSON.stringify(input.mtr) : null,
-        input.car ? JSON.stringify(input.car) : null,
-        input.tunnelIndicatorId || null,
+        name,
+        latestArrivalTime,
+        busJson,
+        mtrJson,
+        carJson,
+        tunnelIndicatorId,
         now,
         now
       ]
@@ -93,12 +105,12 @@ export async function createProfile(input: ProfileInput): Promise<CommuteProfile
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
-      input.name.trim(),
-      input.latestArrivalTime,
-      input.bus ? JSON.stringify(input.bus) : null,
-      input.mtr ? JSON.stringify(input.mtr) : null,
-      input.car ? JSON.stringify(input.car) : null,
-      input.tunnelIndicatorId || null,
+      name,
+      latestArrivalTime,
+      busJson,
+      mtrJson,
+      carJson,
+      tunnelIndicatorId,
       now,
       now
     );
@@ -110,6 +122,7 @@ export async function updateProfile(id: string, input: ProfileInput): Promise<Co
   validate(input);
   if (!(await getProfile(id))) return undefined;
   const now = new Date().toISOString();
+  const [name, latestArrivalTime, busJson, mtrJson, carJson, tunnelIndicatorId] = profileColumns(input);
   if (usePostgres && pgPool) {
     await pgPool.query(
       `UPDATE profiles
@@ -117,12 +130,12 @@ export async function updateProfile(id: string, input: ProfileInput): Promise<Co
           tunnel_indicator_id = $6, updated_at = $7
       WHERE id = $8`,
       [
-        input.name.trim(),
-        input.latestArrivalTime,
-        input.bus ? JSON.stringify(input.bus) : null,
-        input.mtr ? JSON.stringify(input.mtr) : null,
-        input.car ? JSON.stringify(input.car) : null,
-        input.tunnelIndicatorId || null,
+        name,
+        latestArrivalTime,
+        busJson,
+        mtrJson,
+        carJson,
+        tunnelIndicatorId,
         now,
         id
       ]
@@ -134,12 +147,12 @@ export async function updateProfile(id: string, input: ProfileInput): Promise<Co
           tunnel_indicator_id = ?, updated_at = ?
       WHERE id = ?
     `).run(
-      input.name.trim(),
-      input.latestArrivalTime,
-      input.bus ? JSON.stringify(input.bus) : null,
-      input.mtr ? JSON.stringify(input.mtr) : null,
-      input.car ? JSON.stringify(input.car) : null,
-      input.tunnelIndicatorId || null,
+      name,
+      latestArrivalTime,
+      busJson,
+      mtrJson,
+      carJson,
+      tunnelIndicatorId,
       now,
       id
     );

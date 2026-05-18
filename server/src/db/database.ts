@@ -5,6 +5,28 @@ import { Pool } from "pg";
 import { config } from "../config";
 
 export const usePostgres = Boolean(config.databaseUrl);
+const DB_SCHEMA_SQL = `
+  CREATE TABLE IF NOT EXISTS profiles (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    latest_arrival_time TEXT NOT NULL,
+    bus_json TEXT,
+    mtr_json TEXT,
+    car_json TEXT,
+    tunnel_indicator_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS todo_tasks (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    due_at TEXT,
+    status TEXT NOT NULL DEFAULT 'open',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+`;
 
 function resolvePostgresSsl(): boolean | { rejectUnauthorized: boolean } | undefined {
   const value = config.databaseSsl.trim().toLowerCase();
@@ -30,51 +52,9 @@ export const db = usePostgres
 
 export async function initDatabase(): Promise<void> {
   if (usePostgres && pgPool) {
-    await pgPool.query(`
-      CREATE TABLE IF NOT EXISTS profiles (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        latest_arrival_time TEXT NOT NULL,
-        bus_json TEXT,
-        mtr_json TEXT,
-        car_json TEXT,
-        tunnel_indicator_id TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS todo_tasks (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        due_at TEXT,
-        status TEXT NOT NULL DEFAULT 'open',
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      );
-    `);
+    await pgPool.query(DB_SCHEMA_SQL);
     return;
   }
 
-  db?.exec(`
-    CREATE TABLE IF NOT EXISTS profiles (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      latest_arrival_time TEXT NOT NULL,
-      bus_json TEXT,
-      mtr_json TEXT,
-      car_json TEXT,
-      tunnel_indicator_id TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS todo_tasks (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      due_at TEXT,
-      status TEXT NOT NULL DEFAULT 'open',
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-  `);
+  db?.exec(DB_SCHEMA_SQL);
 }

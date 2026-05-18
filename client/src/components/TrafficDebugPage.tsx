@@ -3,14 +3,10 @@ import { Car, Gauge, RefreshCw, Route, Waves } from "lucide-react";
 import { TrafficFlowDebugPayload } from "../../../shared/types";
 import { api } from "../lib/api";
 import { cameraImageUrl, useCameraRefreshToken } from "../lib/camera";
-import { formatClock, formatMinutes, formatUpdated } from "../lib/format";
+import { formatClock, formatMinutes, formatSpeedKph, formatUpdated } from "../lib/format";
 
 interface Props {
   profileId: string;
-}
-
-function speedLabel(value?: number): string {
-  return typeof value === "number" ? `${Math.round(value)} km/h` : "--";
 }
 
 function JsonBlock({ data }: { data: unknown }) {
@@ -160,8 +156,8 @@ export function TrafficDebugPage({ profileId }: Props) {
                     </div>
                     {!road.cameraOnly && (
                       <>
-                        <b><Gauge size={18} /> {speedLabel(road.representativeSpeedKph)}</b>
-                        <small>Slowest {speedLabel(road.slowestSpeedKph)}</small>
+                        <b><Gauge size={18} /> {formatSpeedKph(road.representativeSpeedKph)}</b>
+                        <small>Slowest {formatSpeedKph(road.slowestSpeedKph)}</small>
                       </>
                     )}
                     {road.cameras?.length ? (
