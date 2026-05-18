@@ -1,5 +1,5 @@
 import type React from "react";
-import { AlertTriangle, Bus, Car, Clock, TrainFront, Waves } from "lucide-react";
+import { AlertTriangle, Bus, Car, Clock, CloudRain, Droplets, Car as CarIcon, Thermometer, TrainFront, Waves } from "lucide-react";
 import { DashboardPayload, EtaItem } from "../../../shared/types";
 import { formatClock, formatMinutes, formatUpdated } from "../lib/format";
 
@@ -91,6 +91,31 @@ function JourneyLane({
   );
 }
 
+function WeatherPane({ data }: { data: DashboardPayload }) {
+  return (
+    <section className="weather-pane">
+      <div className="weather-head">
+        <div className="metric-title"><CloudRain /> Today's weather</div>
+        <SourcePill health={data.weather.status.health} updatedAt={data.weather.status.updatedAt} />
+      </div>
+      {data.weather.hours.length ? (
+        <div className="weather-hours">
+          {data.weather.hours.map((hour) => (
+            <article key={hour.time} className="weather-hour">
+              <strong>{formatClock(hour.time)}</strong>
+              <span><Thermometer size={15} /> {hour.temperatureC}°C</span>
+              <span><Droplets size={15} /> {hour.humidityPercent}%</span>
+              <span><CloudRain size={15} /> {hour.precipitationMm} mm</span>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">{data.weather.status.message || "Weather forecast unavailable."}</p>
+      )}
+    </section>
+  );
+}
+
 function CarLane({ data }: { data: DashboardPayload }) {
   const fastest = data.car.fastest;
   const tollFree = data.car.tollFree;
@@ -101,7 +126,7 @@ function CarLane({ data }: { data: DashboardPayload }) {
   return (
     <article className="journey-lane car-compare">
       <div className="lane-head">
-        <div className="metric-title"><Car />By car</div>
+        <div className="metric-title"><CarIcon />By car</div>
         <SourcePill health={data.car.status.health} updatedAt={data.car.status.updatedAt} />
       </div>
       <div className="car-route-grid">
@@ -153,6 +178,8 @@ export function Dashboard({ data }: Props) {
           <span>{formatClock(data.generatedAt)}</span>
         </div>
       </section>
+
+      <WeatherPane data={data} />
 
       <section className="journey-board">
         <div className="journey-main">

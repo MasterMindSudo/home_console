@@ -114,10 +114,21 @@ export interface SourceStatus {
   message?: string;
 }
 
+export interface WeatherHour {
+  time: string;
+  temperatureC: number;
+  humidityPercent: number;
+  precipitationMm: number;
+}
+
 export interface DashboardPayload {
   profile: CommuteProfile;
   generatedAt: string;
   recommendation: "bus_ok" | "consider_alternative" | "unknown";
+  weather: {
+    status: SourceStatus;
+    hours: WeatherHour[];
+  };
   bus: {
     status: SourceStatus;
     previousStopName?: string;

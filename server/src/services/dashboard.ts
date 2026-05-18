@@ -4,13 +4,15 @@ import { getBusEtas } from "../adapters/bus";
 import { getMtrEstimate } from "../adapters/mtr";
 import { getCarEta } from "../adapters/tomtom";
 import { getTunnelIndicator } from "../adapters/tunnel";
+import { getHourlyWeather } from "../adapters/weather";
 import { pairBusEtas } from "./time";
 
 export async function buildDashboard(profileId: string): Promise<DashboardPayload | undefined> {
   const profile = getProfile(profileId);
   if (!profile) return undefined;
 
-  const [busResult, mtr, car, tunnel] = await Promise.all([
+  const [weather, busResult, mtr, car, tunnel] = await Promise.all([
+    getHourlyWeather(),
     getBusEtas(profile.bus),
     getMtrEstimate(profile.mtr),
     getCarEta(profile.car),
@@ -24,6 +26,7 @@ export async function buildDashboard(profileId: string): Promise<DashboardPayloa
     profile,
     generatedAt: new Date().toISOString(),
     recommendation: firstStatus === "on_time" ? "bus_ok" : firstStatus === "late" ? "consider_alternative" : "unknown",
+    weather,
     bus: { ...busResult, pairs },
     mtr,
     car,
