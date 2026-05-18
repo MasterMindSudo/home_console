@@ -16,9 +16,14 @@ function JsonBlock({ data }: { data: unknown }) {
   return <pre className="debug-json">{JSON.stringify(data, null, 2)}</pre>;
 }
 
+function seconds(ms?: number): string {
+  return typeof ms === "number" ? `${(ms / 1000).toFixed(1)}s` : "--";
+}
+
 export function TrafficDebugPage({ profileId }: Props) {
   const [data, setData] = useState<TrafficFlowDebugPayload | null>(null);
   const [forceRefresh, setForceRefresh] = useState(true);
+  const [includeTollFree, setIncludeTollFree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -27,7 +32,7 @@ export function TrafficDebugPage({ profileId }: Props) {
     setLoading(true);
     setError("");
     try {
-      setData(await api.trafficFlowDebug(profileId, forceRefresh));
+      setData(await api.trafficFlowDebug(profileId, forceRefresh, includeTollFree));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Traffic debug update failed.");
     } finally {
@@ -56,6 +61,10 @@ export function TrafficDebugPage({ profileId }: Props) {
           <label className="debug-toggle">
             <input type="checkbox" checked={forceRefresh} onChange={(event) => setForceRefresh(event.target.checked)} />
             Force live TomTom
+          </label>
+          <label className="debug-toggle">
+            <input type="checkbox" checked={includeTollFree} onChange={(event) => setIncludeTollFree(event.target.checked)} />
+            Include toll-free
           </label>
           <button onClick={update} disabled={loading}>
             <RefreshCw size={18} /> {loading ? "Updating" : "Update now"}
@@ -104,6 +113,24 @@ export function TrafficDebugPage({ profileId }: Props) {
                 <span>Cache</span>
                 <strong>{data.forceRefresh ? "bypassed" : `${data.tomtom.refreshMinutes} min`}</strong>
                 <small>{data.tomtom.primaryQuotaBlocked ? "primary cooling down" : "primary eligible"}</small>
+              </div>
+            </div>
+          </article>
+
+          <article className="debug-card">
+            <div className="metric-title">Timing</div>
+            <div className="debug-kpis key-kpis">
+              <div>
+                <span>Total</span>
+                <strong>{seconds(data.timings.totalMs)}</strong>
+              </div>
+              <div>
+                <span>TomTom</span>
+                <strong>{seconds(data.timings.tomtomMs)}</strong>
+              </div>
+              <div>
+                <span>HK flow</span>
+                <strong>{seconds(data.timings.trafficFlowMs)}</strong>
               </div>
             </div>
           </article>

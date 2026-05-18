@@ -70,7 +70,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - Car setup uses map pins/coordinates, not manual address entry.
 - Car ETA shows fastest and less-toll/toll-free style options.
 - Traffic pane uses TomTom route guidance road names matched to HK Gov speed segment data; this is approximate context, not geometry matching.
-- Sidebar includes a Traffic debug page for TomTom/traffic-flow integration testing. It has no auto refresh; manual Update calls `/api/debug/traffic-flow/:profileId`, force-refreshes TomTom by default, bypasses latest-arrival cutoff, and shows key-presence booleans.
+- Sidebar includes a Traffic debug page for TomTom/traffic-flow integration testing. It has no auto refresh; manual Update calls `/api/debug/traffic-flow/:profileId`, force-refreshes TomTom by default, bypasses latest-arrival cutoff, skips toll-free by default for speed, and shows key-presence booleans plus TomTom/HK-flow timings.
 - Weather uses hourly cards, not a line chart, because temp/humidity/rain have incompatible scales.
 
 ## Data Sources And Adapters

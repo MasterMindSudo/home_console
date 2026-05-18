@@ -31,5 +31,5 @@ export const api = {
     if (!response.ok) throw new Error(response.statusText);
   },
   dashboard: (profileId: string) => request<DashboardPayload>(`/api/dashboard/${profileId}`),
-  trafficFlowDebug: (profileId: string, forceRefresh = false) => request<TrafficFlowDebugPayload>(`/api/debug/traffic-flow/${profileId}?force=${forceRefresh ? "true" : "false"}`)
+  trafficFlowDebug: (profileId: string, forceRefresh = false, includeTollFree = false) => request<TrafficFlowDebugPayload>(`/api/debug/traffic-flow/${profileId}?force=${forceRefresh ? "true" : "false"}&tollFree=${includeTollFree ? "true" : "false"}`)
 };

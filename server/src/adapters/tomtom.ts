@@ -28,6 +28,7 @@ interface CachedCarResult {
 interface CarEtaOptions {
   forceRefresh?: boolean;
   ignoreArrivalStop?: boolean;
+  includeTollFree?: boolean;
 }
 
 interface TomTomRoute {
@@ -263,16 +264,20 @@ export async function getCarEta(car?: CarConfig, latestArrivalTime?: string, opt
   }
 
   try {
+    const includeTollFree = options.includeTollFree !== false;
     const fastest = await calculateCarRoute(car, "fastest", refreshMs);
-    const tollFree = await calculateCarRoute(car, "toll_free", refreshMs).catch(() => undefined);
+    const tollFree = includeTollFree ? await calculateCarRoute(car, "toll_free", refreshMs).catch(() => undefined) : undefined;
     const tollFreeDeltaMinutes = tollFree ? tollFree.travelMinutes - fastest.travelMinutes : undefined;
     const backupMessage = fastest.keyLabel === "backup" ? "TomTom backup key used because the primary key is unavailable." : undefined;
+    const tollFreeMessage = includeTollFree
+      ? tollFree ? undefined : "No toll-free route returned by TomTom."
+      : "Toll-free route skipped for this request.";
 
     const result: CarResult = {
       status: {
         health: "ok",
         updatedAt: new Date().toISOString(),
-        message: [backupMessage, tollFree ? undefined : "No toll-free route returned by TomTom."].filter(Boolean).join(" ") || undefined
+        message: [backupMessage, tollFreeMessage].filter(Boolean).join(" ") || undefined
       },
       travelMinutes: fastest.travelMinutes,
       arrivalTime: fastest.arrivalTime,
