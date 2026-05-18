@@ -132,6 +132,42 @@ function isNumericRoadKey(value: string): boolean {
   return /^[0-9]+[A-Z]?$/.test(value);
 }
 
+function uniqueRouteKeys(routeRoadNames: string[]): string[] {
+  const seen = new Set<string>();
+  const keys: string[] = [];
+  expandRouteRoadNames(routeRoadNames)
+    .map(normalizeRoadName)
+    .filter((key) => key && !isNumericRoadKey(key))
+    .forEach((key) => {
+      if (seen.has(key)) return;
+      seen.add(key);
+      keys.push(key);
+    });
+  return keys.slice(0, 32);
+}
+
+function segmentIndex(segmentInfo: SegmentInfo[]): Map<string, SegmentInfo[]> {
+  const index = new Map<string, SegmentInfo[]>();
+  segmentInfo.forEach((segment) => {
+    if (!segment.roadKey || isNumericRoadKey(segment.roadKey)) return;
+    const current = index.get(segment.roadKey) || [];
+    current.push(segment);
+    index.set(segment.roadKey, current);
+  });
+  return index;
+}
+
+function findMatchingSegments(routeKey: string, segmentsByRoad: Map<string, SegmentInfo[]>): SegmentInfo[] {
+  const exact = segmentsByRoad.get(routeKey);
+  if (exact?.length) return exact;
+  if (routeKey.length < 8) return [];
+
+  for (const [segmentKey, segments] of segmentsByRoad) {
+    if (segmentKey.includes(routeKey) || routeKey.includes(segmentKey)) return segments;
+  }
+  return [];
+}
+
 function expandRouteRoadNames(routeRoadNames: string[]): string[] {
   const normalized = routeRoadNames.map(normalizeRoadName);
   const expanded = [...routeRoadNames];
@@ -150,32 +186,19 @@ function expandRouteRoadNames(routeRoadNames: string[]): string[] {
 }
 
 export function aggregateTrafficFlow(routeRoadNames: string[], segmentInfo: SegmentInfo[], speeds: SpeedPayload): TrafficFlowRoad[] {
-  const routeKeys = expandRouteRoadNames(routeRoadNames)
-    .map((name) => ({ name, key: normalizeRoadName(name) }))
-    .filter((item) => item.key && !isNumericRoadKey(item.key));
+  const routeKeys = uniqueRouteKeys(routeRoadNames);
+  const segmentsByRoad = segmentIndex(segmentInfo);
   const speedBySegment = new Map(speeds.items.map((item) => [item.segmentId, item]));
-  const used = new Set<string>();
   const usedRoads = new Set<string>();
   const roads: TrafficFlowRoad[] = [];
 
-  routeKeys.forEach((routeRoad) => {
-    if (used.has(routeRoad.key)) return;
-    const exactSegments = segmentInfo.filter((segment) => segment.roadKey === routeRoad.key);
-    const matchingSegments = exactSegments.length
-      ? exactSegments
-      : segmentInfo.filter((segment) => {
-        if (!segment.roadKey || isNumericRoadKey(segment.roadKey)) return false;
-        return segment.roadKey.includes(routeRoad.key) || routeRoad.key.includes(segment.roadKey);
-      });
+  routeKeys.forEach((routeKey) => {
+    const matchingSegments = findMatchingSegments(routeKey, segmentsByRoad);
     if (!matchingSegments.length) return;
 
     const matchedRoadKey = matchingSegments[0].roadKey;
-    if (usedRoads.has(matchedRoadKey)) {
-      used.add(routeRoad.key);
-      return;
-    }
+    if (usedRoads.has(matchedRoadKey)) return;
 
-    used.add(routeRoad.key);
     usedRoads.add(matchedRoadKey);
     const matchedSpeeds = matchingSegments.map((segment) => speedBySegment.get(segment.segmentId)).filter(Boolean) as SpeedItem[];
     const validSpeeds = matchedSpeeds.filter((item) => item.valid && typeof item.speedKph === "number").map((item) => item.speedKph as number);

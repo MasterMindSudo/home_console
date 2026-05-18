@@ -99,6 +99,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
   - Generic numeric route tokens are ignored for cards because they create broad false matches such as route `7`.
   - Matched cards are de-duplicated by HK road name.
   - Eastern Harbour to Aberdeen/Stubbs trips expand sparse TomTom guidance with the expected road order before HK speed matching.
+  - Matching uses indexed road lookups and caps route candidates so a debug request cannot wedge the Fastify event loop.
 - Weather:
   - Adapter: `server/src/adapters/weather.ts`
   - Uses Open-Meteo for Hong Kong hourly temp, relative humidity, precipitation.
