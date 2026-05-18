@@ -4,6 +4,28 @@ import fetch from "node-fetch";
 const SPEED_XML_URL = "https://resource.data.one.gov.hk/td/traffic-detectors/irnAvgSpeed-all.xml";
 const SEGMENT_INFO_URL = "https://static.data.gov.hk/td/traffic-data-strategic-major-roads/info/speed_segments_info.csv";
 const SEGMENT_CACHE_MS = 24 * 60 * 60 * 1000;
+const EASTERN_HARBOUR_COMMON_ROADS = [
+  "LEI YUE MUN ROAD",
+  "KWUN TONG BYPASS",
+  "ISLAND EASTERN CORRIDOR",
+  "GLOUCESTER ROAD",
+  "WAN CHAI INTERCHANGE",
+  "CANAL ROAD FLYOVER"
+];
+const ABERDEEN_TUNNEL_ROADS = [
+  ...EASTERN_HARBOUR_COMMON_ROADS,
+  "WONG NAI CHUNG GAP FLYOVER",
+  "ABERDEEN TUNNEL",
+  "WONG CHUK HANG ROAD",
+  "NAM FUNG ROAD"
+];
+const STUBBS_ROAD_ROUTE_ROADS = [
+  ...EASTERN_HARBOUR_COMMON_ROADS,
+  "WONG NAI CHUNG GAP ROAD",
+  "STUBBS ROAD",
+  "WONG CHUK HANG ROAD",
+  "NAM FUNG ROAD"
+];
 
 interface SegmentInfo {
   segmentId: string;
@@ -46,6 +68,7 @@ function csvValue(value: string | undefined): string {
 export function normalizeRoadName(value: string): string {
   return value
     .toUpperCase()
+    .replace(/\bBY\s*-?\s*PASS\b/g, "BYPASS")
     .replace(/\bROUTE\s+([0-9A-Z]+)\b/g, "$1")
     .replace(/\bRTE\s+([0-9A-Z]+)\b/g, "$1")
     .replace(/\bRD\b/g, "ROAD")
@@ -109,26 +132,51 @@ function isNumericRoadKey(value: string): boolean {
   return /^[0-9]+[A-Z]?$/.test(value);
 }
 
+function expandRouteRoadNames(routeRoadNames: string[]): string[] {
+  const normalized = routeRoadNames.map(normalizeRoadName);
+  const expanded = [...routeRoadNames];
+  const hasEasternHarbourRoute = normalized.some((name) => name.includes("LEI YUE MUN ROAD"))
+    && normalized.some((name) => name.includes("ISLAND EASTERN CORRIDOR") || name.includes("EASTERN HARBOUR CROSSING TUNNEL"));
+  if (!hasEasternHarbourRoute) return expanded;
+
+  const hasAberdeenRoute = normalized.some((name) => name.includes("ABERDEEN TUNNEL") || name.includes("WONG CHUK HANG ROAD"));
+  const hasStubbsRoute = normalized.some((name) => name.includes("STUBBS ROAD") || name.includes("WONG NAI CHUNG GAP ROAD"));
+  const corridorRoads = hasAberdeenRoute
+    ? ABERDEEN_TUNNEL_ROADS
+    : hasStubbsRoute
+      ? STUBBS_ROAD_ROUTE_ROADS
+      : [...ABERDEEN_TUNNEL_ROADS, ...STUBBS_ROAD_ROUTE_ROADS];
+  return [...corridorRoads, ...expanded];
+}
+
 export function aggregateTrafficFlow(routeRoadNames: string[], segmentInfo: SegmentInfo[], speeds: SpeedPayload): TrafficFlowRoad[] {
-  const routeKeys = routeRoadNames
+  const routeKeys = expandRouteRoadNames(routeRoadNames)
     .map((name) => ({ name, key: normalizeRoadName(name) }))
-    .filter((item) => item.key);
+    .filter((item) => item.key && !isNumericRoadKey(item.key));
   const speedBySegment = new Map(speeds.items.map((item) => [item.segmentId, item]));
   const used = new Set<string>();
+  const usedRoads = new Set<string>();
   const roads: TrafficFlowRoad[] = [];
 
   routeKeys.forEach((routeRoad) => {
     if (used.has(routeRoad.key)) return;
-    const matchingSegments = segmentInfo.filter((segment) => {
-      if (!segment.roadKey) return false;
-      if (isNumericRoadKey(segment.roadKey) || isNumericRoadKey(routeRoad.key)) {
-        return segment.roadKey === routeRoad.key;
-      }
-      return segment.roadKey === routeRoad.key || segment.roadKey.includes(routeRoad.key) || routeRoad.key.includes(segment.roadKey);
-    });
+    const exactSegments = segmentInfo.filter((segment) => segment.roadKey === routeRoad.key);
+    const matchingSegments = exactSegments.length
+      ? exactSegments
+      : segmentInfo.filter((segment) => {
+        if (!segment.roadKey || isNumericRoadKey(segment.roadKey)) return false;
+        return segment.roadKey.includes(routeRoad.key) || routeRoad.key.includes(segment.roadKey);
+      });
     if (!matchingSegments.length) return;
 
+    const matchedRoadKey = matchingSegments[0].roadKey;
+    if (usedRoads.has(matchedRoadKey)) {
+      used.add(routeRoad.key);
+      return;
+    }
+
     used.add(routeRoad.key);
+    usedRoads.add(matchedRoadKey);
     const matchedSpeeds = matchingSegments.map((segment) => speedBySegment.get(segment.segmentId)).filter(Boolean) as SpeedItem[];
     const validSpeeds = matchedSpeeds.filter((item) => item.valid && typeof item.speedKph === "number").map((item) => item.speedKph as number);
     const representativeSpeed = median(validSpeeds);
@@ -145,7 +193,7 @@ export function aggregateTrafficFlow(routeRoadNames: string[], segmentInfo: Segm
     });
   });
 
-  return roads.slice(0, 6);
+  return roads.slice(0, 8);
 }
 
 async function fetchText(url: string, timeoutMs = 10000): Promise<string> {

@@ -51,6 +51,8 @@ interface TomTomRoutePayload {
   routes?: TomTomRoute[];
 }
 
+const ROADLIKE_PATTERN = /([A-Z][A-Z0-9'(). -]*?\b(?:ROAD|RD\.?|STREET|ST\.?|AVENUE|AVE\.?|HIGHWAY|HWY|EXPRESSWAY|EXPWY|BYPASS|BY-PASS|TUNNEL|CORRIDOR|INTERCHANGE|FLYOVER)\b)/gi;
+
 const carCache = new Map<string, CachedCarResult>();
 let primaryQuotaBlockedUntil = 0;
 
@@ -156,19 +158,33 @@ function hasTollSection(route?: TomTomRoute): boolean {
 function extractRoadNames(route?: TomTomRoute): string[] {
   const seen = new Set<string>();
   const roads: string[] = [];
+  const add = (value: string | undefined) => {
+    const trimmed = (value || "").replace(/\/[0-9A-Z]+\b/g, "").trim();
+    if (!trimmed || /^[0-9A-Z]+$/.test(trimmed)) return;
+    if (!ROADLIKE_PATTERN.test(trimmed)) {
+      ROADLIKE_PATTERN.lastIndex = 0;
+      return;
+    }
+    ROADLIKE_PATTERN.lastIndex = 0;
+    const key = trimmed.toUpperCase().replace(/[^A-Z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+    if (seen.has(key)) return;
+    seen.add(key);
+    roads.push(trimmed);
+  };
+  const addRoadsFromText = (value: string | undefined) => {
+    const text = value || "";
+    let match: RegExpExecArray | null;
+    ROADLIKE_PATTERN.lastIndex = 0;
+    while ((match = ROADLIKE_PATTERN.exec(text)) !== null) {
+      add(match[1]);
+    }
+    ROADLIKE_PATTERN.lastIndex = 0;
+  };
+
   (route?.guidance?.instructions || []).forEach((instruction) => {
-    const candidates = [
-      instruction.street,
-      ...(instruction.roadNumbers || []),
-      instruction.signpostText,
-      instruction.message
-    ];
-    candidates.forEach((candidate) => {
-      const value = (candidate || "").trim();
-      if (!value || seen.has(value)) return;
-      seen.add(value);
-      roads.push(value);
-    });
+    add(instruction.street);
+    addRoadsFromText(instruction.signpostText);
+    addRoadsFromText(instruction.message);
   });
   return roads;
 }

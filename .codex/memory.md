@@ -96,7 +96,9 @@ Read this file at the start of future Codex sessions when the chat context is mi
   - Adapter: `server/src/adapters/trafficFlow.ts`
   - Uses `irnAvgSpeed-all.xml` live speeds and `speed_segments_info.csv` segment road names.
   - TomTom fastest-route guidance road names are normalized and matched to HK segment `route` names.
-  - Numeric routes only match exact TomTom road-number candidates.
+  - Generic numeric route tokens are ignored for cards because they create broad false matches such as route `7`.
+  - Matched cards are de-duplicated by HK road name.
+  - Eastern Harbour to Aberdeen/Stubbs trips expand sparse TomTom guidance with the expected road order before HK speed matching.
 - Weather:
   - Adapter: `server/src/adapters/weather.ts`
   - Uses Open-Meteo for Hong Kong hourly temp, relative humidity, precipitation.
