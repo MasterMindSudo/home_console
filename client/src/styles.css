@@ -281,6 +281,7 @@ button { cursor: pointer; }
 }
 .traffic-flow-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
   min-height: 0;
   overflow-y: auto;
@@ -723,7 +724,7 @@ legend { font-weight: 900; padding: 0 8px; }
   }
   .journey-board {
     min-height: 0;
-    grid-template-columns: minmax(0, 1fr) 420px;
+    grid-template-columns: minmax(0, 1fr) 520px;
   }
   .journey-main,
   .traffic-panel {
@@ -743,18 +744,31 @@ legend { font-weight: 900; padding: 0 8px; }
   .traffic-feed {
     min-height: 108px;
   }
-  .traffic-flow-card {
-    padding: 10px;
+  .traffic-flow-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+    overflow: hidden;
+    padding-right: 0;
+  }
+  .traffic-flow-card {
+    min-height: 62px;
+    padding: 8px 9px;
+    gap: 6px;
   }
   .traffic-flow-card strong {
-    font-size: 15px;
+    font-size: 13px;
+    line-height: 1.15;
+  }
+  .traffic-flow-card span,
+  .traffic-flow-card small {
+    font-size: 10px;
   }
   .traffic-flow-card b {
-    font-size: 20px;
+    padding: 5px 8px;
+    font-size: 17px;
   }
   .featured-traffic-camera img {
-    max-height: 230px;
+    max-height: 220px;
   }
   .board {
     padding: 14px 18px;

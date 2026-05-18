@@ -60,7 +60,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - No login in v1.
 - Saved commute profiles are server-side, not browser localStorage.
 - UI should be glanceable for iPad/static display.
-- Primary static-display target is now `1920x1080`; keep the dashboard fitting a 16:9 screen without expanding horizontally.
+- Primary static-display target is now `1920x1080`; keep the dashboard fitting a 16:9 screen without requiring touch/scroll interaction where possible.
 - English-first UI.
 - Bus route setup is route-first: select route, then direction, then stop names.
 - Co-operated routes such as KMB + Citybus should be unified in the UI as one route/direction where possible.
@@ -131,7 +131,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
   - Bus lane with previous stop, origin ETA, route track, destination/ride estimate.
   - MTR lane.
   - Car comparison rows.
-  - Blue road-sign inspired traffic-flow side panel with compact speed cards and one enlarged camera feed rotating every 5 seconds in card/route order.
+  - Blue road-sign inspired traffic-flow side panel with compact two-column speed cards and one enlarged camera feed rotating every 5 seconds in card/route order.
 - Upcoming bus pairings table below.
 - Large display CSS breakpoint starts at `1600px x 900px` and is tuned for `1920x1080`.
 
