@@ -83,6 +83,8 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - Car:
   - Adapter: `server/src/adapters/tomtom.ts`
   - Uses TomTom Routing API server-side only.
+  - TomTom calls are cached server-side per car route for 5 minutes.
+  - TomTom refresh stops after the profile latest-arrival target has passed for the Hong Kong day.
 - Tunnel:
   - Adapter: `server/src/adapters/tunnel.ts`
   - Legacy HK journey-time indicator support exists, but it is no longer rendered in the dashboard.

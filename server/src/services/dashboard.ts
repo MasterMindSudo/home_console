@@ -15,7 +15,7 @@ export async function buildDashboard(profileId: string): Promise<DashboardPayloa
     getHourlyWeather(),
     getBusEtas(profile.bus),
     getMtrEstimate(profile.mtr),
-    getCarEta(profile.car)
+    getCarEta(profile.car, profile.latestArrivalTime)
   ]);
   const trafficFlow = await getTrafficFlow(car.routeRoadNames || []);
 

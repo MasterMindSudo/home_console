@@ -1,7 +1,9 @@
 import { CarConfig, CarRouteEstimate, SourceStatus } from "../../../shared/types";
 import { config } from "../config";
 import { fetchJson } from "./http";
-import { minutesToArrival } from "../services/time";
+import { latestArrivalToday, minutesToArrival } from "../services/time";
+
+const TOMTOM_REFRESH_MS = 5 * 60 * 1000;
 
 interface CarResult {
   status: SourceStatus;
@@ -12,6 +14,11 @@ interface CarResult {
   tollFree?: CarRouteEstimate;
   tollFreeDeltaMinutes?: number;
   routeRoadNames?: string[];
+}
+
+interface CachedCarResult {
+  fetchedAt: number;
+  result: CarResult;
 }
 
 interface TomTomRoute {
@@ -34,6 +41,8 @@ interface TomTomRoute {
 interface TomTomRoutePayload {
   routes?: TomTomRoute[];
 }
+
+const carCache = new Map<string, CachedCarResult>();
 
 function hasTollSection(route?: TomTomRoute): boolean {
   return Boolean(route?.sections?.some((section) => {
@@ -97,16 +106,48 @@ async function calculateCarRoute(car: CarConfig, label: "fastest" | "toll_free")
   };
 }
 
-export async function getCarEta(car?: CarConfig): Promise<CarResult> {
+function carCacheKey(car: CarConfig): string {
+  return `${car.origin.lat.toFixed(6)},${car.origin.lng.toFixed(6)}:${car.destination.lat.toFixed(6)},${car.destination.lng.toFixed(6)}`;
+}
+
+function withStatusMessage(result: CarResult, message: string, health = result.status.health): CarResult {
+  return {
+    ...result,
+    status: {
+      ...result.status,
+      health,
+      message: result.status.message ? `${result.status.message} ${message}` : message
+    }
+  };
+}
+
+export function stoppedAfterArrival(latestArrivalTime?: string, now = new Date()): boolean {
+  if (!latestArrivalTime) return false;
+  return now.getTime() > latestArrivalToday(latestArrivalTime, now).getTime();
+}
+
+export async function getCarEta(car?: CarConfig, latestArrivalTime?: string): Promise<CarResult> {
   if (!car) return { status: { health: "not_configured", message: "No car route configured." } };
   if (!config.tomtomApiKey) return { status: { health: "not_configured", message: "TOMTOM_API_KEY is not set." } };
+
+  const key = carCacheKey(car);
+  const cached = carCache.get(key);
+  const now = Date.now();
+  if (stoppedAfterArrival(latestArrivalTime, new Date(now))) {
+    return cached
+      ? withStatusMessage(cached.result, "TomTom refresh stopped after latest-arrival target.", "stale")
+      : { status: { health: "not_configured", message: "TomTom refresh stopped after latest-arrival target." }, routeRoadNames: [] };
+  }
+  if (cached && now - cached.fetchedAt < TOMTOM_REFRESH_MS) {
+    return withStatusMessage(cached.result, "Cached TomTom result; refreshes every 5 minutes.");
+  }
 
   try {
     const fastest = await calculateCarRoute(car, "fastest");
     const tollFree = await calculateCarRoute(car, "toll_free").catch(() => undefined);
     const tollFreeDeltaMinutes = tollFree ? tollFree.travelMinutes - fastest.travelMinutes : undefined;
 
-    return {
+    const result: CarResult = {
       status: {
         health: "ok",
         updatedAt: new Date().toISOString(),
@@ -120,7 +161,11 @@ export async function getCarEta(car?: CarConfig): Promise<CarResult> {
       tollFreeDeltaMinutes,
       routeRoadNames: fastest.routeRoadNames || []
     };
+    carCache.set(key, { fetchedAt: now, result });
+    return result;
   } catch (error) {
-    return { status: { health: "error", updatedAt: new Date().toISOString(), message: error instanceof Error ? error.message : "TomTom route failed." } };
+    const result: CarResult = { status: { health: "error", updatedAt: new Date().toISOString(), message: error instanceof Error ? error.message : "TomTom route failed." }, routeRoadNames: cached?.result.routeRoadNames || [] };
+    carCache.set(key, { fetchedAt: now, result });
+    return result;
   }
 }
