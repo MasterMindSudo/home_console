@@ -64,6 +64,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - English-first UI.
 - Bus route setup is route-first: select route, then direction, then stop names.
 - Co-operated routes such as KMB + Citybus should be unified in the UI as one route/direction where possible.
+- Co-operated route direction merging must be generic. Do not hardcode route numbers; use terminal-name compatibility so operator naming variants like `KAI TAK (KAI CHING ESTATE)` and `Kai Ching Estate` merge.
 - The UI should show stop names, not stop IDs; stop IDs remain internal because APIs need them.
 - MTR setup should use only start station and destination station; route/line/interchange is resolved automatically.
 - MTR estimate excludes walking time.

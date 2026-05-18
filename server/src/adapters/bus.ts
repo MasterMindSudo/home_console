@@ -219,6 +219,30 @@ function normalizeName(value: string): string {
     .trim();
 }
 
+function nameTokens(value: string): Set<string> {
+  return new Set(normalizeName(value).split(" ").filter((token) => token.length > 2));
+}
+
+export function terminalNamesMatch(a: string, b: string): boolean {
+  const left = normalizeName(a);
+  const right = normalizeName(b);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  if (left.length >= 8 && right.includes(left)) return true;
+  if (right.length >= 8 && left.includes(right)) return true;
+
+  const leftTokens = nameTokens(left);
+  const rightTokens = nameTokens(right);
+  const smaller = Math.min(leftTokens.size, rightTokens.size);
+  if (!smaller) return false;
+  const overlap = Array.from(leftTokens).filter((token) => rightTokens.has(token)).length;
+  return overlap / smaller >= 0.75;
+}
+
+function directionsMatch(choice: BusDirectionChoice, origin: string, destination: string): boolean {
+  return terminalNamesMatch(choice.origin, origin) && terminalNamesMatch(choice.destination, destination);
+}
+
 export async function searchBusRoutes(query = ""): Promise<BusRouteChoice[]> {
   const term = query.trim().toUpperCase();
   const [kmbRoutes, citybusRoutes] = await Promise.all([getKmbRoutes(), getCitybusRoutes()]);
@@ -242,17 +266,16 @@ export async function searchBusRoutes(query = ""): Promise<BusRouteChoice[]> {
 export async function getBusDirections(route: string): Promise<BusDirectionChoice[]> {
   const routeUpper = route.toUpperCase();
   const [kmbRoutes, citybusRoutes] = await Promise.all([getKmbRoutes(), getCitybusRoutes()]);
-  const grouped = new Map<string, BusDirectionChoice>();
+  const grouped: BusDirectionChoice[] = [];
 
   function add(direction: "inbound" | "outbound", operator: BusOperator, origin: string, destination: string, serviceType?: string) {
-    const key = `${normalizeName(origin)}>${normalizeName(destination)}`;
-    const current = grouped.get(key) || { direction, operators: [], operatorDirections: {}, origin, destination, serviceType };
+    const current = grouped.find((choice) => directionsMatch(choice, origin, destination)) || { direction, operators: [], operatorDirections: {}, origin, destination, serviceType };
     if (!current.operators.includes(operator)) current.operators.push(operator);
     current.operatorDirections[operator] = direction;
-    current.origin = current.origin || origin;
-    current.destination = current.destination || destination;
+    if (normalizeName(origin).length < normalizeName(current.origin).length) current.origin = origin;
+    if (normalizeName(destination).length < normalizeName(current.destination).length) current.destination = destination;
     current.serviceType = current.serviceType || serviceType;
-    grouped.set(key, current);
+    if (!grouped.includes(current)) grouped.push(current);
   }
 
   kmbRoutes.filter((item) => item.route === routeUpper).forEach((item) => add(routeDirection(item.bound), "KMB", item.orig_en, item.dest_en, item.service_type));
@@ -263,7 +286,7 @@ export async function getBusDirections(route: string): Promise<BusDirectionChoic
     }
   }
 
-  return Array.from(grouped.values());
+  return grouped;
 }
 
 async function getKmbRouteStops(route: string, direction: "inbound" | "outbound", serviceType = "1"): Promise<BusStopChoice[]> {
