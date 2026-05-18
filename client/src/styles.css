@@ -85,20 +85,28 @@ button { cursor: pointer; }
   margin-bottom: 12px;
 }
 .weather-hours {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(112px, 1fr));
+  display: flex;
   gap: 10px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
 }
 .weather-hour {
-  min-width: 112px;
+  flex: 0 0 122px;
+  min-height: 104px;
   border: 1px solid #dfe6df;
   border-radius: 8px;
   padding: 10px;
   background: #fbfcfb;
   display: grid;
   gap: 7px;
+  scroll-snap-align: start;
+}
+.weather-hour.current {
+  border-color: #c99316;
+  box-shadow: inset 0 0 0 2px rgba(201, 147, 22, .28);
+  background: #fffdf4;
 }
 .weather-hour strong {
   font-size: 16px;
@@ -111,75 +119,6 @@ button { cursor: pointer; }
   font-size: 13px;
   white-space: nowrap;
 }
-.weather-chart-shell {
-  display: grid;
-  gap: 10px;
-}
-.weather-chart-wrap {
-  overflow-x: auto;
-  border: 1px solid #dfe6df;
-  border-radius: 8px;
-  background: #fbfcfb;
-  scrollbar-width: thin;
-}
-.weather-chart {
-  min-width: 100%;
-}
-.weather-chart svg {
-  display: block;
-}
-.weather-grid-line {
-  stroke: #dfe6df;
-  stroke-width: 1;
-}
-.weather-now-line {
-  stroke: #17202a;
-  stroke-width: 2;
-  stroke-dasharray: 5 5;
-}
-.weather-line {
-  fill: none;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.weather-line.temp { stroke: #a23d2d; }
-.weather-line.humidity { stroke: #2f6f8f; }
-.weather-line.precipitation { stroke: #2f7d43; }
-.weather-tick {
-  stroke: #80918b;
-  stroke-width: 1;
-}
-.weather-time {
-  fill: #40524d;
-  font-size: 12px;
-  font-weight: 700;
-}
-.weather-time.current {
-  fill: #17202a;
-  font-weight: 900;
-}
-.weather-summary {
-  fill: #60706b;
-  font-size: 10px;
-}
-.weather-legend {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  color: #40524d;
-  font-size: 13px;
-  font-weight: 800;
-}
-.weather-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-.weather-legend .temp { color: #a23d2d; }
-.weather-legend .humidity { color: #2f6f8f; }
-.weather-legend .precipitation { color: #2f7d43; }
 
 .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .metric, .board, .setup-panel, .empty-state {
