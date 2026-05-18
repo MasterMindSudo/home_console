@@ -1,6 +1,6 @@
-import type React from "react";
-import { AlertTriangle, Bus, Car, Clock, CloudRain, Droplets, Car as CarIcon, Thermometer, TrainFront, Waves } from "lucide-react";
-import { DashboardPayload, EtaItem } from "../../../shared/types";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { AlertTriangle, Bus, Clock, CloudRain, Droplets, Car as CarIcon, Thermometer, TrainFront, Waves } from "lucide-react";
+import { DashboardPayload, EtaItem, WeatherHour } from "../../../shared/types";
 import { formatClock, formatMinutes, formatUpdated } from "../lib/format";
 
 interface Props {
@@ -34,6 +34,19 @@ function findPreviousEta(origin: EtaItem | undefined, previousEtas: EtaItem[]): 
   );
 }
 
+function normalizePoint(value: number, min: number, max: number, top: number, bottom: number): number {
+  if (max <= min) return (top + bottom) / 2;
+  return bottom - ((value - min) / (max - min)) * (bottom - top);
+}
+
+function chartPoints(hours: WeatherHour[], getValue: (hour: WeatherHour) => number, min: number, max: number): string {
+  const top = 24;
+  const bottom = 118;
+  const xStart = 36;
+  const xStep = 72;
+  return hours.map((hour, index) => `${xStart + index * xStep},${normalizePoint(getValue(hour), min, max, top, bottom)}`).join(" ");
+}
+
 function JourneyLane({
   icon,
   title,
@@ -47,9 +60,9 @@ function JourneyLane({
   markers = 10,
   message
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
-  status: React.ReactNode;
+  status: ReactNode;
   previousMinutes?: number;
   previousLabel?: string;
   startMinutes?: number;
@@ -108,6 +121,78 @@ function WeatherPane({ data }: { data: DashboardPayload }) {
               <span><CloudRain size={15} /> {hour.precipitationMm} mm</span>
             </article>
           ))}
+        </div>
+      ) : (
+        <p className="muted">{data.weather.status.message || "Weather forecast unavailable."}</p>
+      )}
+    </section>
+  );
+}
+
+function WeatherChartPane({ data }: { data: DashboardPayload }) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const hours = data.weather.hours;
+  const currentIndex = useMemo(() => {
+    const now = new Date(data.generatedAt).getTime();
+    const nextIndex = hours.findIndex((hour) => new Date(hour.time).getTime() > now);
+    return Math.max(0, nextIndex === -1 ? hours.length - 1 : nextIndex - 1);
+  }, [data.generatedAt, hours]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container || !hours.length) return;
+    container.scrollLeft = Math.max(0, currentIndex * 72 - container.clientWidth * 0.28);
+  }, [currentIndex, hours.length]);
+
+  const chart = useMemo(() => {
+    if (!hours.length) return undefined;
+    const temps = hours.map((hour) => hour.temperatureC);
+    const humidity = hours.map((hour) => hour.humidityPercent);
+    const precipitation = hours.map((hour) => hour.precipitationMm);
+    const width = 72 * Math.max(hours.length - 1, 1) + 72;
+    return {
+      width,
+      tempPoints: chartPoints(hours, (hour) => hour.temperatureC, Math.min(...temps) - 1, Math.max(...temps) + 1),
+      humidityPoints: chartPoints(hours, (hour) => hour.humidityPercent, Math.max(0, Math.min(...humidity) - 5), Math.min(100, Math.max(...humidity) + 5)),
+      precipitationPoints: chartPoints(hours, (hour) => hour.precipitationMm, 0, Math.max(1, Math.max(...precipitation))),
+      currentX: 36 + currentIndex * 72
+    };
+  }, [currentIndex, hours]);
+
+  return (
+    <section className="weather-pane">
+      <div className="weather-head">
+        <div className="metric-title"><CloudRain /> Today's weather</div>
+        <SourcePill health={data.weather.status.health} updatedAt={data.weather.status.updatedAt} />
+      </div>
+      {chart ? (
+        <div className="weather-chart-shell">
+          <div className="weather-chart-wrap" ref={scrollRef}>
+            <div className="weather-chart" style={{ width: chart.width }}>
+              <svg width={chart.width} height="178" viewBox={`0 0 ${chart.width} 178`} role="img" aria-label="24 hour weather forecast chart">
+                {[24, 55, 86, 118].map((y) => <line key={y} x1="28" y1={y} x2={chart.width - 18} y2={y} className="weather-grid-line" />)}
+                <line x1={chart.currentX} y1="14" x2={chart.currentX} y2="132" className="weather-now-line" />
+                <polyline points={chart.humidityPoints} className="weather-line humidity" />
+                <polyline points={chart.precipitationPoints} className="weather-line precipitation" />
+                <polyline points={chart.tempPoints} className="weather-line temp" />
+                {hours.map((hour, index) => {
+                  const x = 36 + index * 72;
+                  return (
+                    <g key={hour.time}>
+                      <line x1={x} y1="132" x2={x} y2="138" className="weather-tick" />
+                      <text x={x} y="156" textAnchor="middle" className={index === currentIndex ? "weather-time current" : "weather-time"}>{formatClock(hour.time)}</text>
+                      <text x={x} y="172" textAnchor="middle" className="weather-summary">{hour.temperatureC}C / {hour.humidityPercent}% / {hour.precipitationMm}mm</text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          </div>
+          <div className="weather-legend">
+            <span className="temp"><Thermometer size={15} /> Temp</span>
+            <span className="humidity"><Droplets size={15} /> Humidity</span>
+            <span className="precipitation"><CloudRain size={15} /> Rain</span>
+          </div>
         </div>
       ) : (
         <p className="muted">{data.weather.status.message || "Weather forecast unavailable."}</p>
@@ -179,7 +264,7 @@ export function Dashboard({ data }: Props) {
         </div>
       </section>
 
-      <WeatherPane data={data} />
+      <WeatherChartPane data={data} />
 
       <section className="journey-board">
         <div className="journey-main">

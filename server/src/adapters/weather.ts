@@ -43,8 +43,8 @@ export async function getHourlyWeather(): Promise<WeatherResult> {
         humidityPercent: Math.round(hourly.relative_humidity_2m?.[index] ?? 0),
         precipitationMm: Number((hourly.precipitation?.[index] ?? 0).toFixed(1))
       }))
-      .filter((item) => new Date(item.time).getTime() >= now - 30 * 60000)
-      .slice(0, 8);
+      .filter((item) => new Date(item.time).getTime() >= now - 24 * 60 * 60000)
+      .slice(0, 24);
 
     return {
       status: { health: "ok", updatedAt: new Date().toISOString() },
