@@ -112,6 +112,9 @@ button { cursor: pointer; }
   gap: 16px;
   margin-top: 12px;
 }
+.lane-body.with-previous {
+  grid-template-columns: 112px 96px minmax(180px, 1fr) 132px;
+}
 .lane-time {
   min-height: 72px;
   display: grid;
@@ -129,6 +132,10 @@ button { cursor: pointer; }
   color: #60706b;
   font-size: 12px;
   margin-top: 5px;
+}
+.lane-time.previous {
+  border-style: dashed;
+  background: #fbfcfa;
 }
 .lane-track {
   position: relative;
@@ -346,6 +353,7 @@ legend { font-weight: 900; padding: 0 8px; }
   .hero-state { align-items: start; flex-direction: column; }
   .metric-grid, .grid-two { grid-template-columns: 1fr; }
   .lane-head, .lane-body { grid-template-columns: 1fr; }
+  .lane-body.with-previous { grid-template-columns: 1fr; }
   .lane-head { align-items: start; }
   .car-route-row { grid-template-columns: 1fr; }
   .eta-table { grid-template-columns: 1fr; }

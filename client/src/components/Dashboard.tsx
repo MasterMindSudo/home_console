@@ -1,6 +1,6 @@
 import type React from "react";
 import { AlertTriangle, Bus, Car, Clock, TrainFront, Waves } from "lucide-react";
-import { DashboardPayload } from "../../../shared/types";
+import { DashboardPayload, EtaItem } from "../../../shared/types";
 import { formatClock, formatMinutes, formatUpdated } from "../lib/format";
 
 interface Props {
@@ -24,10 +24,22 @@ function confidenceLabel(confidence?: string): string {
   return "unavailable";
 }
 
+function findPreviousEta(origin: EtaItem | undefined, previousEtas: EtaItem[]): EtaItem | undefined {
+  if (!origin) return undefined;
+  const sameOperator = previousEtas.filter((eta) => eta.operator === origin.operator && eta.minutes <= origin.minutes);
+  return (
+    sameOperator.find((eta) => eta.runId && origin.runId && eta.runId === origin.runId) ||
+    sameOperator.find((eta) => eta.etaSequence && origin.etaSequence && eta.etaSequence === origin.etaSequence) ||
+    sameOperator[0]
+  );
+}
+
 function JourneyLane({
   icon,
   title,
   status,
+  previousMinutes,
+  previousLabel,
   startMinutes,
   startLabel,
   endMinutes,
@@ -38,6 +50,8 @@ function JourneyLane({
   icon: React.ReactNode;
   title: string;
   status: React.ReactNode;
+  previousMinutes?: number;
+  previousLabel?: string;
   startMinutes?: number;
   startLabel?: string;
   endMinutes?: number;
@@ -51,7 +65,13 @@ function JourneyLane({
         <div className="metric-title">{icon}{title}</div>
         {status}
       </div>
-      <div className="lane-body">
+      <div className={`lane-body ${previousLabel ? "with-previous" : ""}`}>
+        {previousLabel && (
+          <div className="lane-time previous">
+            <strong>{formatMinutes(previousMinutes)}</strong>
+            <span>{previousLabel}</span>
+          </div>
+        )}
         <div className="lane-time start">
           <strong>{formatMinutes(startMinutes)}</strong>
           <span>{startLabel || "from now"}</span>
@@ -109,6 +129,12 @@ function CarLane({ data }: { data: DashboardPayload }) {
 
 export function Dashboard({ data }: Props) {
   const firstBus = data.bus.pairs[0];
+  const previousBus = findPreviousEta(firstBus?.origin, data.bus.previousEtas);
+  const previousLabel = previousBus
+    ? `${formatClock(previousBus.eta)} prev stop`
+    : firstBus?.origin
+      ? "departed prev stop"
+      : undefined;
   const busTravelMinutes =
     typeof firstBus?.destination?.minutes === "number" && typeof firstBus?.origin?.minutes === "number"
       ? Math.max(0, firstBus.destination.minutes - firstBus.origin.minutes)
@@ -134,6 +160,8 @@ export function Dashboard({ data }: Props) {
             icon={<Bus />}
             title={`Bus ${data.profile.bus?.route || ""}`}
             status={<SourcePill health={data.bus.status.health} updatedAt={data.bus.status.updatedAt} />}
+            previousMinutes={previousBus?.minutes}
+            previousLabel={previousLabel}
             startMinutes={firstBus?.origin?.minutes}
             startLabel={formatClock(firstBus?.origin?.eta)}
             endMinutes={busTravelMinutes}

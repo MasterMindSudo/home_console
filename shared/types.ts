@@ -120,6 +120,8 @@ export interface DashboardPayload {
   recommendation: "bus_ok" | "consider_alternative" | "unknown";
   bus: {
     status: SourceStatus;
+    previousStopName?: string;
+    previousEtas: EtaItem[];
     originEtas: EtaItem[];
     destinationEtas: EtaItem[];
     pairs: PairedBusEta[];

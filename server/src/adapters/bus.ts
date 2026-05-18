@@ -4,6 +4,8 @@ import { minutesUntil } from "../services/time";
 
 interface BusResult {
   status: SourceStatus;
+  previousStopName?: string;
+  previousEtas: EtaItem[];
   originEtas: EtaItem[];
   destinationEtas: EtaItem[];
 }
@@ -109,7 +111,7 @@ async function fetchOperatorEta(config: BusLegConfig, operator: BusOperator, sto
 
 export async function getBusEtas(config?: BusLegConfig): Promise<BusResult> {
   if (!config) {
-    return { status: { health: "not_configured", message: "No bus leg configured." }, originEtas: [], destinationEtas: [] };
+    return { status: { health: "not_configured", message: "No bus leg configured." }, previousEtas: [], originEtas: [], destinationEtas: [] };
   }
 
   try {
@@ -120,23 +122,48 @@ export async function getBusEtas(config?: BusLegConfig): Promise<BusResult> {
     const destinationCalls = operators
       .map((operator) => ({ operator, stopId: config.destinationStopIds?.[operator] || config.destinationStopId }))
       .filter((item) => item.stopId);
+    const previousCalls = (await Promise.all(operators.map((operator) => findPreviousStopCall(config, operator).catch(() => undefined))))
+      .filter((item): item is { operator: BusOperator; stopId: string; name: string } => Boolean(item?.stopId));
 
-    const [originEtas, destinationEtas] = await Promise.all([
+    const [previousEtas, originEtas, destinationEtas] = await Promise.all([
+      Promise.all(previousCalls.map((item) => fetchOperatorEta(config, item.operator, item.stopId))).then((items) => items.flat().sort((a, b) => a.minutes - b.minutes)),
       Promise.all(originCalls.map((item) => fetchOperatorEta(config, item.operator, item.stopId))).then((items) => items.flat().sort((a, b) => a.minutes - b.minutes)),
       Promise.all(destinationCalls.map((item) => fetchOperatorEta(config, item.operator, item.stopId))).then((items) => items.flat().sort((a, b) => a.minutes - b.minutes))
     ]);
     return {
       status: { health: "ok", updatedAt: new Date().toISOString() },
+      previousStopName: previousCalls[0]?.name,
+      previousEtas,
       originEtas,
       destinationEtas
     };
   } catch (error) {
     return {
       status: { health: "error", updatedAt: new Date().toISOString(), message: error instanceof Error ? error.message : "Bus ETA failed." },
+      previousEtas: [],
       originEtas: [],
       destinationEtas: []
     };
   }
+}
+
+async function findPreviousStopCall(config: BusLegConfig, operator: BusOperator): Promise<{ operator: BusOperator; stopId: string; name: string } | undefined> {
+  const originStopId = config.originStopIds?.[operator] || config.originStopId;
+  if (!originStopId) return undefined;
+
+  const operatorDirection = config.operatorDirections?.[operator] || config.direction;
+  const stops =
+    operator === "KMB" || operator === "LWB"
+      ? await getKmbRouteStops(config.route, operatorDirection, config.serviceType)
+      : operator === "CTB"
+        ? await getCitybusRouteStops(config.route, operatorDirection)
+        : [];
+  const originIndex = stops.findIndex((stop) => stop.stopIds[operator] === originStopId);
+  if (originIndex <= 0) return undefined;
+
+  const previous = stops[originIndex - 1];
+  const previousStopId = previous.stopIds[operator];
+  return previousStopId ? { operator, stopId: previousStopId, name: previous.name } : undefined;
 }
 
 let kmbRoutesCache: KmbRouteRecord[] | undefined;
