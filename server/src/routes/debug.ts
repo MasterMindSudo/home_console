@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { TrafficFlowDebugPayload } from "../../../shared/types";
-import { getCarEta } from "../adapters/tomtom";
+import { getCarEta, tomtomRuntimeInfo } from "../adapters/tomtom";
 import { getTrafficFlow } from "../adapters/trafficFlow";
 import { getProfile } from "../db/profiles";
 
@@ -9,7 +9,7 @@ export async function debugRoutes(app: FastifyInstance): Promise<void> {
     const profile = getProfile(request.params.profileId);
     if (!profile) return reply.code(404).send({ error: "Profile not found." });
 
-    const forceRefresh = request.query.force === "true";
+    const forceRefresh = request.query.force !== "false";
     const car = await getCarEta(profile.car, profile.latestArrivalTime, { forceRefresh, ignoreArrivalStop: true });
     const routeRoadNames = car.routeRoadNames || [];
     const trafficFlow = await getTrafficFlow(routeRoadNames);
@@ -23,6 +23,7 @@ export async function debugRoutes(app: FastifyInstance): Promise<void> {
       },
       generatedAt: new Date().toISOString(),
       forceRefresh,
+      tomtom: tomtomRuntimeInfo(),
       routeRoadNames,
       car,
       trafficFlow

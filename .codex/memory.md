@@ -49,7 +49,8 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - Health path: `/api/health`
 - Node should be 18.x. `.node-version` and `package.json` engines pin this because Node 26 broke `better-sqlite3`.
 - Required env vars include `TOMTOM_API_KEY`.
-- Optional TomTom backup key env aliases: `TOMTOM_BACKUP_API_KEY`, `TOMTOM_API_KEY_BACKUP`, or `TOMTOM_BACKUP_KEY`.
+- Optional TomTom backup key env aliases: `TOMTOM_BACKUP_API_KEY`, `TOMTOM_API_KEY_BACKUP`, `TOMTOM_BACKUP_KEY`, `TOMTOM_FALLBACK_API_KEY`, `TOMTOM_API_KEY_2`, `TOMTOM_SECONDARY_API_KEY`, `TOMTOM_SECONDARY_KEY`, or `TOMTOM_BACKUP`.
+- Restart the dev server after `.env` changes because keys are read on backend startup.
 - `.env` is local and gitignored. Never reveal or commit secrets from it.
 - SQLite storage on Render free/ephemeral instances may not be durable. Profiles can disappear after redeploy/restart unless persistent storage or a hosted DB is added later.
 
@@ -69,7 +70,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - Car setup uses map pins/coordinates, not manual address entry.
 - Car ETA shows fastest and less-toll/toll-free style options.
 - Traffic pane uses TomTom route guidance road names matched to HK Gov speed segment data; this is approximate context, not geometry matching.
-- Sidebar includes a Traffic debug page for TomTom/traffic-flow integration testing. It has no auto refresh; manual Update calls `/api/debug/traffic-flow/:profileId`.
+- Sidebar includes a Traffic debug page for TomTom/traffic-flow integration testing. It has no auto refresh; manual Update calls `/api/debug/traffic-flow/:profileId`, force-refreshes TomTom by default, bypasses latest-arrival cutoff, and shows key-presence booleans.
 - Weather uses hourly cards, not a line chart, because temp/humidity/rain have incompatible scales.
 
 ## Data Sources And Adapters

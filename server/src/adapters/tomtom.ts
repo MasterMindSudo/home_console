@@ -67,12 +67,30 @@ class TomTomHttpError extends Error {
   }
 }
 
+function tomtomErrorMessage(error: unknown): string {
+  if (error instanceof TomTomHttpError) {
+    const source = error.keyLabel === "backup" ? "backup key" : "primary key";
+    const backupHint = error.keyLabel === "primary" && !config.tomtomBackupApiKey ? " No backup TomTom key is configured." : "";
+    return `${error.status} ${error.message.replace(/^[0-9]+\s*/, "")} from TomTom ${source}.${backupHint}`;
+  }
+  return error instanceof Error ? error.message : "TomTom route failed.";
+}
+
 export function tomtomRefreshMs(env: NodeJS.ProcessEnv = process.env): number {
   const override = Number(env.TOMTOM_REFRESH_MS || env.TOMTOM_REFRESH_INTERVAL_MS);
   if (Number.isFinite(override) && override > 0) return override;
 
   const isLive = env.RENDER === "true" || Boolean(env.RENDER_SERVICE_ID) || env.NODE_ENV === "production";
   return isLive ? LIVE_TOMTOM_REFRESH_MS : DEV_TOMTOM_REFRESH_MS;
+}
+
+export function tomtomRuntimeInfo(): { primaryConfigured: boolean; backupConfigured: boolean; refreshMinutes: number; primaryQuotaBlocked: boolean } {
+  return {
+    primaryConfigured: Boolean(config.tomtomApiKey),
+    backupConfigured: Boolean(config.tomtomBackupApiKey),
+    refreshMinutes: Math.round(tomtomRefreshMs() / 60000),
+    primaryQuotaBlocked: Date.now() < primaryQuotaBlockedUntil
+  };
 }
 
 export function isTomTomQuotaError(error: unknown): boolean {
@@ -251,7 +269,7 @@ export async function getCarEta(car?: CarConfig, latestArrivalTime?: string, opt
     carCache.set(key, { fetchedAt: now, result });
     return result;
   } catch (error) {
-    const result: CarResult = { status: { health: "error", updatedAt: new Date().toISOString(), message: error instanceof Error ? error.message : "TomTom route failed." }, routeRoadNames: cached?.result.routeRoadNames || [] };
+    const result: CarResult = { status: { health: "error", updatedAt: new Date().toISOString(), message: tomtomErrorMessage(error) }, routeRoadNames: cached?.result.routeRoadNames || [] };
     carCache.set(key, { fetchedAt: now, result });
     return result;
   }

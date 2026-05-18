@@ -562,6 +562,13 @@ legend { font-weight: 900; padding: 0 8px; }
   margin: 6px 0 2px;
   font-size: 26px;
 }
+.debug-kpis.key-kpis {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.debug-kpis.key-kpis strong {
+  font-size: 20px;
+  text-transform: capitalize;
+}
 .debug-token-list {
   display: flex;
   flex-wrap: wrap;

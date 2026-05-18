@@ -190,6 +190,12 @@ export interface TrafficFlowDebugPayload {
   profile: Pick<CommuteProfile, "id" | "name" | "latestArrivalTime" | "car">;
   generatedAt: string;
   forceRefresh: boolean;
+  tomtom: {
+    primaryConfigured: boolean;
+    backupConfigured: boolean;
+    refreshMinutes: number;
+    primaryQuotaBlocked: boolean;
+  };
   routeRoadNames: string[];
   car: DashboardPayload["car"];
   trafficFlow: DashboardPayload["trafficFlow"];

@@ -18,7 +18,7 @@ function JsonBlock({ data }: { data: unknown }) {
 
 export function TrafficDebugPage({ profileId }: Props) {
   const [data, setData] = useState<TrafficFlowDebugPayload | null>(null);
-  const [forceRefresh, setForceRefresh] = useState(false);
+  const [forceRefresh, setForceRefresh] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -87,6 +87,25 @@ export function TrafficDebugPage({ profileId }: Props) {
               </div>
             </div>
             {data.car.status.message && <p className="muted">{data.car.status.message}</p>}
+          </article>
+
+          <article className="debug-card">
+            <div className="metric-title">TomTom keys</div>
+            <div className="debug-kpis key-kpis">
+              <div>
+                <span>Primary</span>
+                <strong>{data.tomtom.primaryConfigured ? "seen" : "missing"}</strong>
+              </div>
+              <div>
+                <span>Backup</span>
+                <strong>{data.tomtom.backupConfigured ? "seen" : "missing"}</strong>
+              </div>
+              <div>
+                <span>Cache</span>
+                <strong>{data.forceRefresh ? "bypassed" : `${data.tomtom.refreshMinutes} min`}</strong>
+                <small>{data.tomtom.primaryQuotaBlocked ? "primary cooling down" : "primary eligible"}</small>
+              </div>
+            </div>
           </article>
 
           <article className="debug-card">
