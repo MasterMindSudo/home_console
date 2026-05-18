@@ -1,4 +1,4 @@
-import { BusDirectionChoice, BusRouteChoice, BusStopChoice, CommuteProfile, DashboardPayload, MtrLineChoice, MtrSegmentConfig, MtrStationChoice, ProfileInput } from "../../../shared/types";
+import { BusDirectionChoice, BusRouteChoice, BusStopChoice, CommuteProfile, DashboardPayload, MtrLineChoice, MtrSegmentConfig, MtrStationChoice, ProfileInput, TrafficFlowDebugPayload } from "../../../shared/types";
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -30,5 +30,6 @@ export const api = {
     const response = await fetch(`/api/profiles/${id}`, { method: "DELETE" });
     if (!response.ok) throw new Error(response.statusText);
   },
-  dashboard: (profileId: string) => request<DashboardPayload>(`/api/dashboard/${profileId}`)
+  dashboard: (profileId: string) => request<DashboardPayload>(`/api/dashboard/${profileId}`),
+  trafficFlowDebug: (profileId: string, forceRefresh = false, includeTollFree = false) => request<TrafficFlowDebugPayload>(`/api/debug/traffic-flow/${profileId}?force=${forceRefresh ? "true" : "false"}&tollFree=${includeTollFree ? "true" : "false"}`)
 };

@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import { CommuteProfile, ProfileInput } from "../../../shared/types";
-import { db } from "./database";
+import { db, pgPool, usePostgres } from "./database";
 
 interface ProfileRow {
   id: string;
@@ -45,62 +45,126 @@ function createId(): string {
   return randomBytes(16).toString("hex");
 }
 
-export function listProfiles(): CommuteProfile[] {
-  const rows = db.prepare("SELECT * FROM profiles ORDER BY updated_at DESC").all() as ProfileRow[];
+function profileColumns(input: ProfileInput): Array<string | null> {
+  return [
+    input.name.trim(),
+    input.latestArrivalTime,
+    input.bus ? JSON.stringify(input.bus) : null,
+    input.mtr ? JSON.stringify(input.mtr) : null,
+    input.car ? JSON.stringify(input.car) : null,
+    input.tunnelIndicatorId || null
+  ];
+}
+
+export async function listProfiles(): Promise<CommuteProfile[]> {
+  if (usePostgres && pgPool) {
+    const result = await pgPool.query<ProfileRow>("SELECT * FROM profiles ORDER BY updated_at DESC");
+    return result.rows.map(toProfile);
+  }
+  const rows = db!.prepare("SELECT * FROM profiles ORDER BY updated_at DESC").all() as ProfileRow[];
   return rows.map(toProfile);
 }
 
-export function getProfile(id: string): CommuteProfile | undefined {
-  const row = db.prepare("SELECT * FROM profiles WHERE id = ?").get(id) as ProfileRow | undefined;
+export async function getProfile(id: string): Promise<CommuteProfile | undefined> {
+  if (usePostgres && pgPool) {
+    const result = await pgPool.query<ProfileRow>("SELECT * FROM profiles WHERE id = $1", [id]);
+    return result.rows[0] ? toProfile(result.rows[0]) : undefined;
+  }
+  const row = db!.prepare("SELECT * FROM profiles WHERE id = ?").get(id) as ProfileRow | undefined;
   return row ? toProfile(row) : undefined;
 }
 
-export function createProfile(input: ProfileInput): CommuteProfile {
+export async function createProfile(input: ProfileInput): Promise<CommuteProfile> {
   validate(input);
   const now = new Date().toISOString();
   const id = createId();
-  db.prepare(`
-    INSERT INTO profiles (
-      id, name, latest_arrival_time, bus_json, mtr_json, car_json,
-      tunnel_indicator_id, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    input.name.trim(),
-    input.latestArrivalTime,
-    input.bus ? JSON.stringify(input.bus) : null,
-    input.mtr ? JSON.stringify(input.mtr) : null,
-    input.car ? JSON.stringify(input.car) : null,
-    input.tunnelIndicatorId || null,
-    now,
-    now
-  );
-  return getProfile(id)!;
+  const [name, latestArrivalTime, busJson, mtrJson, carJson, tunnelIndicatorId] = profileColumns(input);
+  if (usePostgres && pgPool) {
+    await pgPool.query(
+      `INSERT INTO profiles (
+        id, name, latest_arrival_time, bus_json, mtr_json, car_json,
+        tunnel_indicator_id, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        id,
+        name,
+        latestArrivalTime,
+        busJson,
+        mtrJson,
+        carJson,
+        tunnelIndicatorId,
+        now,
+        now
+      ]
+    );
+  } else {
+    db!.prepare(`
+      INSERT INTO profiles (
+        id, name, latest_arrival_time, bus_json, mtr_json, car_json,
+        tunnel_indicator_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      name,
+      latestArrivalTime,
+      busJson,
+      mtrJson,
+      carJson,
+      tunnelIndicatorId,
+      now,
+      now
+    );
+  }
+  return (await getProfile(id))!;
 }
 
-export function updateProfile(id: string, input: ProfileInput): CommuteProfile | undefined {
+export async function updateProfile(id: string, input: ProfileInput): Promise<CommuteProfile | undefined> {
   validate(input);
-  if (!getProfile(id)) return undefined;
+  if (!(await getProfile(id))) return undefined;
   const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE profiles
-    SET name = ?, latest_arrival_time = ?, bus_json = ?, mtr_json = ?, car_json = ?,
-        tunnel_indicator_id = ?, updated_at = ?
-    WHERE id = ?
-  `).run(
-    input.name.trim(),
-    input.latestArrivalTime,
-    input.bus ? JSON.stringify(input.bus) : null,
-    input.mtr ? JSON.stringify(input.mtr) : null,
-    input.car ? JSON.stringify(input.car) : null,
-    input.tunnelIndicatorId || null,
-    now,
-    id
-  );
-  return getProfile(id);
+  const [name, latestArrivalTime, busJson, mtrJson, carJson, tunnelIndicatorId] = profileColumns(input);
+  if (usePostgres && pgPool) {
+    await pgPool.query(
+      `UPDATE profiles
+      SET name = $1, latest_arrival_time = $2, bus_json = $3, mtr_json = $4, car_json = $5,
+          tunnel_indicator_id = $6, updated_at = $7
+      WHERE id = $8`,
+      [
+        name,
+        latestArrivalTime,
+        busJson,
+        mtrJson,
+        carJson,
+        tunnelIndicatorId,
+        now,
+        id
+      ]
+    );
+  } else {
+    db!.prepare(`
+      UPDATE profiles
+      SET name = ?, latest_arrival_time = ?, bus_json = ?, mtr_json = ?, car_json = ?,
+          tunnel_indicator_id = ?, updated_at = ?
+      WHERE id = ?
+    `).run(
+      name,
+      latestArrivalTime,
+      busJson,
+      mtrJson,
+      carJson,
+      tunnelIndicatorId,
+      now,
+      id
+    );
+  }
+  return await getProfile(id);
 }
 
-export function deleteProfile(id: string): boolean {
-  const result = db.prepare("DELETE FROM profiles WHERE id = ?").run(id);
+export async function deleteProfile(id: string): Promise<boolean> {
+  if (usePostgres && pgPool) {
+    const result = await pgPool.query("DELETE FROM profiles WHERE id = $1", [id]);
+    return (result.rowCount || 0) > 0;
+  }
+  const result = db!.prepare("DELETE FROM profiles WHERE id = ?").run(id);
   return result.changes > 0;
 }

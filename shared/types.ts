@@ -78,6 +78,28 @@ export interface CarRouteEstimate {
   usesToll: boolean;
 }
 
+export type TrafficFlowStatus = "smooth" | "moderate" | "slow" | "stale";
+
+export interface TrafficCamera {
+  key: string;
+  description: string;
+  imageUrl: string;
+  roadName?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface TrafficFlowRoad {
+  roadName: string;
+  representativeSpeedKph?: number;
+  slowestSpeedKph?: number;
+  validSegmentCount: number;
+  invalidSegmentCount: number;
+  status: TrafficFlowStatus;
+  cameras?: TrafficCamera[];
+  cameraOnly?: boolean;
+}
+
 export interface CommuteProfile {
   id: string;
   name: string;
@@ -159,6 +181,11 @@ export interface DashboardPayload {
     trafficStatus?: string;
     indicatorName?: string;
   };
+  trafficFlow: {
+    status: SourceStatus;
+    roads: TrafficFlowRoad[];
+    matchedRoadNames: string[];
+  };
 }
 
 export interface ProfileInput {
@@ -168,4 +195,25 @@ export interface ProfileInput {
   mtr?: MtrSegmentConfig;
   car?: CarConfig;
   tunnelIndicatorId?: string;
+}
+
+export interface TrafficFlowDebugPayload {
+  profile: Pick<CommuteProfile, "id" | "name" | "latestArrivalTime" | "car">;
+  generatedAt: string;
+  forceRefresh: boolean;
+  includeTollFree: boolean;
+  timings: {
+    totalMs: number;
+    tomtomMs: number;
+    trafficFlowMs: number;
+  };
+  tomtom: {
+    primaryConfigured: boolean;
+    backupConfigured: boolean;
+    refreshMinutes: number;
+    primaryQuotaBlocked: boolean;
+  };
+  routeRoadNames: string[];
+  car: DashboardPayload["car"];
+  trafficFlow: DashboardPayload["trafficFlow"];
 }

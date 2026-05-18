@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
-import { AlertTriangle, Bus, Clock, CloudRain, Droplets, Car as CarIcon, Thermometer, TrainFront, Waves } from "lucide-react";
-import { DashboardPayload, EtaItem } from "../../../shared/types";
-import { formatClock, formatMinutes, formatUpdated } from "../lib/format";
+import { AlertTriangle, Bus, Clock, CloudRain, Droplets, Car as CarIcon, Gauge, Thermometer, TrainFront, Waves } from "lucide-react";
+import { DashboardPayload, EtaItem, TrafficCamera } from "../../../shared/types";
+import { cameraImageUrl, useCameraRefreshToken, useRotatingIndex } from "../lib/camera";
+import { formatClock, formatMinutes, formatSpeedKph, formatUpdated } from "../lib/format";
 
 interface Props {
   data: DashboardPayload;
@@ -167,6 +168,64 @@ function CarLane({ data }: { data: DashboardPayload }) {
   );
 }
 
+function TrafficFlowPane({ data }: { data: DashboardPayload }) {
+  const cameraToken = useCameraRefreshToken();
+  const cameras = useMemo(
+    () => data.trafficFlow.roads.flatMap((road) =>
+      (road.cameras || []).map((camera): TrafficCamera => ({ ...camera, roadName: camera.roadName || road.roadName }))
+    ),
+    [data.trafficFlow.roads]
+  );
+  const featuredCamera = cameras[useRotatingIndex(cameras.length)];
+
+  return (
+    <aside className="traffic-panel flow-board">
+      <div className="traffic-flow-head">
+        <div className="metric-title"><Waves /> Traffic flow</div>
+        <SourcePill health={data.trafficFlow.status.health} updatedAt={data.trafficFlow.status.updatedAt} />
+      </div>
+      {data.trafficFlow.roads.length ? (
+        <>
+          <div className="traffic-flow-grid compact-speed-grid">
+            {data.trafficFlow.roads.map((road) => (
+              <article key={road.roadName} className={`traffic-flow-card ${road.status} ${road.cameraOnly ? "camera-only" : ""}`}>
+                <div>
+                  <strong>{road.roadName}</strong>
+                  <span>
+                    {road.cameraOnly
+                      ? "camera only"
+                      : `${road.validSegmentCount} live - ${road.invalidSegmentCount} stale`}
+                    {road.cameras?.length ? ` - ${road.cameras.length} cam` : ""}
+                  </span>
+                </div>
+                {!road.cameraOnly && (
+                  <>
+                    <b><Gauge size={18} /> {formatSpeedKph(road.representativeSpeedKph)}</b>
+                    <small>Slowest {formatSpeedKph(road.slowestSpeedKph)}</small>
+                  </>
+                )}
+              </article>
+            ))}
+          </div>
+          {featuredCamera && (
+            <figure className="featured-traffic-camera">
+              <img src={cameraImageUrl(featuredCamera.imageUrl, cameraToken)} alt={featuredCamera.description} />
+              <figcaption>
+                <strong>{featuredCamera.roadName || "Traffic camera"}</strong>
+                <span>{featuredCamera.description}</span>
+              </figcaption>
+            </figure>
+          )}
+        </>
+      ) : (
+        <div className="traffic-flow-empty">
+          <p>{data.trafficFlow.status.message || "No matching HK speed segments for this TomTom route."}</p>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 export function Dashboard({ data }: Props) {
   const firstBus = data.bus.pairs[0];
   const previousBus = findPreviousEta(firstBus?.origin, data.bus.previousEtas);
@@ -224,23 +283,7 @@ export function Dashboard({ data }: Props) {
           <CarLane data={data} />
         </div>
 
-        <aside className="traffic-panel">
-          <div className="metric-title"><Waves /> Traffic</div>
-          <SourcePill health={data.tunnel.status.health} updatedAt={data.tunnel.status.updatedAt} />
-          <div className="traffic-grid">
-            <div>
-              <span>{data.tunnel.indicatorName || "Tunnel indicator"}</span>
-              <strong>{formatMinutes(data.tunnel.minutes)}</strong>
-            </div>
-            <div>
-              <span>Status</span>
-              <strong>{data.tunnel.trafficStatus || "--"}</strong>
-            </div>
-          </div>
-          <div className="traffic-feed">
-            <p>{data.tunnel.status.message || "Live traffic camera/feed placeholder for the selected crossing."}</p>
-          </div>
-        </aside>
+        <TrafficFlowPane data={data} />
       </section>
 
       <section className="board">
