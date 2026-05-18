@@ -25,13 +25,13 @@ Open the client at `http://localhost:5173`.
 
 ## Configuration
 
-- Put your TomTom key in `.env` as `TOMTOM_API_KEY`.
+- Put your main TomTom key in `.env` as `TOMTOM_API_KEY`. Optional backup aliases are `TOMTOM_BACKUP_API_KEY`, `TOMTOM_API_KEY_BACKUP`, or `TOMTOM_BACKUP_KEY`.
 - Profiles are stored locally in SQLite at `data/dashboard.sqlite`.
 - Bus setup starts from route number, then loads directions and stop-name choices. The app hides official stop IDs in the UI but stores them internally because the ETA APIs require them.
 - Co-operated routes can merge operators such as KMB + Citybus and keep each operator's own direction/stop IDs behind one visible route direction.
 - MTR setup uses start and destination stations; the app resolves the first train line/direction and indicative route automatically.
 - Car setup uses a map pin picker; the app stores coordinates behind the scenes for TomTom routing.
-- TomTom car routing is cached server-side for 5 minutes per route, and stops refreshing after the profile's latest-arrival target has passed.
+- TomTom car routing is cached server-side per route: 10 minutes on local/dev, 2 minutes on Render/production. It stops refreshing after the profile's latest-arrival target has passed.
 - The traffic-flow pane matches TomTom route guidance road names to HK Gov live speed segments. It is route context, not exact geometry matching.
 
 ## Scripts

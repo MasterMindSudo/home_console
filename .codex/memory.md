@@ -49,6 +49,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - Health path: `/api/health`
 - Node should be 18.x. `.node-version` and `package.json` engines pin this because Node 26 broke `better-sqlite3`.
 - Required env vars include `TOMTOM_API_KEY`.
+- Optional TomTom backup key env aliases: `TOMTOM_BACKUP_API_KEY`, `TOMTOM_API_KEY_BACKUP`, or `TOMTOM_BACKUP_KEY`.
 - `.env` is local and gitignored. Never reveal or commit secrets from it.
 - SQLite storage on Render free/ephemeral instances may not be durable. Profiles can disappear after redeploy/restart unless persistent storage or a hosted DB is added later.
 
@@ -83,7 +84,8 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - Car:
   - Adapter: `server/src/adapters/tomtom.ts`
   - Uses TomTom Routing API server-side only.
-  - TomTom calls are cached server-side per car route for 5 minutes.
+  - TomTom calls are cached server-side per car route: 10 minutes on local/dev, 2 minutes on Render/production.
+  - If the primary TomTom key returns quota/limit-style 403/429 errors, the adapter retries with the backup key when configured.
   - TomTom refresh stops after the profile latest-arrival target has passed for the Hong Kong day.
 - Tunnel:
   - Adapter: `server/src/adapters/tunnel.ts`
