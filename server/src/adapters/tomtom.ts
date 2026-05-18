@@ -25,6 +25,10 @@ interface CachedCarResult {
   result: CarResult;
 }
 
+interface CarEtaOptions {
+  forceRefresh?: boolean;
+}
+
 interface TomTomRoute {
   summary?: {
     travelTimeInSeconds?: number;
@@ -205,7 +209,7 @@ export function stoppedAfterArrival(latestArrivalTime?: string, now = new Date()
   return now.getTime() > latestArrivalToday(latestArrivalTime, now).getTime();
 }
 
-export async function getCarEta(car?: CarConfig, latestArrivalTime?: string): Promise<CarResult> {
+export async function getCarEta(car?: CarConfig, latestArrivalTime?: string, options: CarEtaOptions = {}): Promise<CarResult> {
   if (!car) return { status: { health: "not_configured", message: "No car route configured." } };
   if (!config.tomtomApiKey && !config.tomtomBackupApiKey) return { status: { health: "not_configured", message: "TOMTOM_API_KEY is not set." } };
 
@@ -219,7 +223,7 @@ export async function getCarEta(car?: CarConfig, latestArrivalTime?: string): Pr
       ? withStatusMessage(cached.result, "TomTom refresh stopped after latest-arrival target.", "stale")
       : { status: { health: "not_configured", message: "TomTom refresh stopped after latest-arrival target." }, routeRoadNames: [] };
   }
-  if (cached && now - cached.fetchedAt < refreshMs) {
+  if (!options.forceRefresh && cached && now - cached.fetchedAt < refreshMs) {
     return withStatusMessage(cached.result, `Cached TomTom result; refreshes every ${refreshMinutes} minutes.`);
   }
 

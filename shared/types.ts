@@ -185,3 +185,12 @@ export interface ProfileInput {
   car?: CarConfig;
   tunnelIndicatorId?: string;
 }
+
+export interface TrafficFlowDebugPayload {
+  profile: Pick<CommuteProfile, "id" | "name" | "latestArrivalTime" | "car">;
+  generatedAt: string;
+  forceRefresh: boolean;
+  routeRoadNames: string[];
+  car: DashboardPayload["car"];
+  trafficFlow: DashboardPayload["trafficFlow"];
+}

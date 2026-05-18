@@ -33,6 +33,7 @@ Open the client at `http://localhost:5173`.
 - Car setup uses a map pin picker; the app stores coordinates behind the scenes for TomTom routing.
 - TomTom car routing is cached server-side per route: 10 minutes on local/dev, 2 minutes on Render/production. It stops refreshing after the profile's latest-arrival target has passed.
 - The traffic-flow pane matches TomTom route guidance road names to HK Gov live speed segments. It is route context, not exact geometry matching.
+- The sidebar Traffic debug page has no auto refresh; use its Update button to manually test TomTom road-name extraction and HK speed-flow matching.
 
 ## Scripts
 

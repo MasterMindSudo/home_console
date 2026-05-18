@@ -8,6 +8,7 @@ import { profileRoutes } from "./routes/profiles";
 import { dashboardRoutes } from "./routes/dashboard";
 import { busRoutes } from "./routes/bus";
 import { mtrRoutes } from "./routes/mtr";
+import { debugRoutes } from "./routes/debug";
 
 const mimeTypes: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -42,6 +43,7 @@ async function main(): Promise<void> {
   await app.register(dashboardRoutes);
   await app.register(busRoutes);
   await app.register(mtrRoutes);
+  await app.register(debugRoutes);
 
   app.get("/api/health", async () => ({ ok: true, now: new Date().toISOString() }));
 

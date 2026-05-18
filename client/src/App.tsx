@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Bug, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { CommuteProfile, DashboardPayload, ProfileInput } from "../../shared/types";
 import { api } from "./lib/api";
 import { Dashboard } from "./components/Dashboard";
 import { ProfileForm } from "./components/ProfileForm";
+import { TrafficDebugPage } from "./components/TrafficDebugPage";
 
 export function App() {
   const [profiles, setProfiles] = useState<CommuteProfile[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [dashboard, setDashboard] = useState<DashboardPayload | null>(null);
   const [editing, setEditing] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
   const [error, setError] = useState("");
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedId), [profiles, selectedId]);
 
@@ -35,6 +37,7 @@ export function App() {
     await loadProfiles();
     setSelectedId(saved.id);
     setEditing(false);
+    setDebugOpen(false);
     await loadDashboard(saved.id);
   }
 
@@ -43,6 +46,7 @@ export function App() {
     await api.deleteProfile(selectedId);
     setDashboard(null);
     setSelectedId("");
+    setDebugOpen(false);
     await loadProfiles();
   }
 
@@ -51,11 +55,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (!selectedId || debugOpen) return;
     loadDashboard(selectedId);
     const fast = window.setInterval(() => loadDashboard(selectedId), 10000);
     return () => window.clearInterval(fast);
-  }, [selectedId]);
+  }, [selectedId, debugOpen]);
 
   return (
     <div className="app-shell">
@@ -70,7 +74,7 @@ export function App() {
 
         <div className="profile-list">
           {profiles.map((profile) => (
-            <button key={profile.id} className={profile.id === selectedId ? "selected" : ""} onClick={() => { setSelectedId(profile.id); setEditing(false); }}>
+            <button key={profile.id} className={profile.id === selectedId ? "selected" : ""} onClick={() => { setSelectedId(profile.id); setEditing(false); setDebugOpen(false); }}>
               {profile.name}
               <small>Arrive by {profile.latestArrivalTime}</small>
             </button>
@@ -78,15 +82,18 @@ export function App() {
         </div>
 
         <div className="sidebar-actions">
-          <button onClick={() => setEditing(true)}><Plus size={18} /> {selectedProfile ? "Edit/Add" : "Create"}</button>
-          <button onClick={() => loadDashboard()} disabled={!selectedId}><RefreshCw size={18} /> Refresh</button>
+          <button onClick={() => { setEditing(true); setDebugOpen(false); }}><Plus size={18} /> {selectedProfile ? "Edit/Add" : "Create"}</button>
+          <button onClick={() => loadDashboard()} disabled={!selectedId || debugOpen}><RefreshCw size={18} /> Refresh</button>
+          <button className={debugOpen ? "selected" : ""} onClick={() => { setEditing(false); setDebugOpen(true); }} disabled={!selectedId}><Bug size={18} /> Traffic debug</button>
           <button onClick={deleteSelected} disabled={!selectedId}><Trash2 size={18} /> Delete</button>
         </div>
       </aside>
 
       <div className="content">
         {error && <div className="notice">{error}</div>}
-        {editing ? (
+        {debugOpen ? (
+          <TrafficDebugPage profileId={selectedId} />
+        ) : editing ? (
           <ProfileForm profile={selectedProfile} onSave={saveProfile} />
         ) : dashboard ? (
           <Dashboard data={dashboard} />
