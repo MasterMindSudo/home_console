@@ -70,6 +70,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - Car setup uses map pins/coordinates, not manual address entry.
 - Car ETA shows fastest and less-toll/toll-free style options.
 - Traffic pane uses TomTom route guidance road names matched to HK Gov speed segment data; this is approximate context, not geometry matching.
+- HK live speed XML is cached server-side for 2 minutes; dashboard polling can be faster but should reuse cached speed data within that window.
 - Sidebar includes a Traffic debug page for TomTom/traffic-flow integration testing. It has no auto refresh; manual Update calls `/api/debug/traffic-flow/:profileId`, force-refreshes TomTom by default, bypasses latest-arrival cutoff, skips toll-free by default for speed, and shows key-presence booleans plus TomTom/HK-flow timings.
 - Weather uses hourly cards, not a line chart, because temp/humidity/rain have incompatible scales.
 
@@ -126,6 +127,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
 ## Current UI Layout Ideas
 
 - Top hero: recommendation/status and current time.
+- Only the dashboard is locked to the 1920x1080 wall-display layout; setup/edit/debug pages should scroll normally.
 - Weather pane near the top: horizontally scrollable 24-hour cards, current hour leftmost/highlighted.
 - Main board:
   - Bus lane with previous stop, origin ETA, route track, destination/ride estimate.

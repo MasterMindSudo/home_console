@@ -6,6 +6,7 @@ const SEGMENT_INFO_URL = "https://static.data.gov.hk/td/traffic-data-strategic-m
 const CAMERA_LOCATION_URL = "https://static.data.gov.hk/td/traffic-snapshot-images/code/Traffic_Camera_Locations_En.csv";
 const SEGMENT_CACHE_MS = 24 * 60 * 60 * 1000;
 const CAMERA_CACHE_MS = 24 * 60 * 60 * 1000;
+const SPEED_CACHE_MS = 2 * 60 * 1000;
 const EASTERN_HARBOUR_COMMON_ROADS = [
   "LEI YUE MUN ROAD",
   "KWUN TONG BYPASS",
@@ -54,6 +55,7 @@ interface TrafficFlowResult {
 
 let segmentCache: { fetchedAt: number; items: SegmentInfo[] } | undefined;
 let cameraCache: { fetchedAt: number; items: TrafficCamera[] } | undefined;
+let speedCache: { fetchedAt: number; payload: SpeedPayload } | undefined;
 
 function decodeXml(value: string): string {
   return value
@@ -331,18 +333,26 @@ async function getTrafficCameras(): Promise<TrafficCamera[]> {
   return items;
 }
 
+async function getTrafficSpeeds(): Promise<SpeedPayload> {
+  const now = Date.now();
+  if (speedCache && now - speedCache.fetchedAt < SPEED_CACHE_MS) return speedCache.payload;
+  const speedXml = await fetchText(SPEED_XML_URL, 15000);
+  const payload = parseSpeedXml(speedXml);
+  speedCache = { fetchedAt: now, payload };
+  return payload;
+}
+
 export async function getTrafficFlow(routeRoadNames: string[] = []): Promise<TrafficFlowResult> {
   if (!routeRoadNames.length) {
     return { status: { health: "not_configured", message: "No TomTom route road names available." }, roads: [], matchedRoadNames: [] };
   }
 
   try {
-    const [segmentInfo, speedXml, cameras] = await Promise.all([
+    const [segmentInfo, speeds, cameras] = await Promise.all([
       getSegmentInfo(),
-      fetchText(SPEED_XML_URL, 15000),
+      getTrafficSpeeds(),
       getTrafficCameras().catch(() => [])
     ]);
-    const speeds = parseSpeedXml(speedXml);
     const roads = aggregateTrafficFlow(routeRoadNames, segmentInfo, speeds, cameras);
     return {
       status: {

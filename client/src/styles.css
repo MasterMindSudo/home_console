@@ -48,6 +48,9 @@ button { cursor: pointer; }
 .sidebar-actions button { display: flex; align-items: center; gap: 10px; }
 
 .content { padding: 28px; min-width: 0; }
+.content.content-scroll {
+  overflow: auto;
+}
 .dashboard { display: grid; gap: 20px; min-width: 0; }
 .hero-state {
   min-height: 210px;
@@ -697,6 +700,9 @@ legend { font-weight: 900; padding: 0 8px; }
     height: 100vh;
     padding: 22px 26px;
     overflow: hidden;
+  }
+  .content.content-scroll {
+    overflow: auto;
   }
   .dashboard {
     height: 100%;

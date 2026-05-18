@@ -38,6 +38,7 @@ Open the client at `http://localhost:5173`.
 - Traffic-flow matching is indexed and route-candidate capped so debug matching cannot monopolize the API server.
 - The dashboard keeps traffic-flow cards speed-first in a compact two-column wall-display layout and shows one enlarged matched traffic camera feed rotating every 5 seconds in route/card order.
 - Traffic camera image URLs get a 2-minute frontend cache-buster so snapshots refresh on the public camera cadence without extra backend calls.
+- HK speed XML is cached server-side for 2 minutes, so frequent dashboard refreshes reuse speed data inside that window.
 - The sidebar Traffic debug page has no auto refresh; use its Update button to manually test TomTom road-name extraction and HK speed-flow matching.
 - Traffic debug force-refreshes TomTom by default, skips toll-free by default for faster route-flow testing, shows backend key visibility, and reports TomTom/HK-flow timings.
 
