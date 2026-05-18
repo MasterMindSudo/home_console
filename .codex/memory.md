@@ -100,6 +100,8 @@ Read this file at the start of future Codex sessions when the chat context is mi
   - Matched cards are de-duplicated by HK road name.
   - Eastern Harbour to Aberdeen/Stubbs trips expand sparse TomTom guidance with the expected road order before HK speed matching.
   - Matching uses indexed road lookups and caps route candidates so a debug request cannot wedge the Fastify event loop.
+  - Traffic camera snapshots use `Traffic_Camera_Locations_En.csv` metadata and `tdcctv.data.one.gov.hk/{key}.JPG`; matched cameras render inside road cards, and camera-only cards are inserted in route order when no speed segment card exists.
+  - Frontend appends a 2-minute cache-buster to traffic camera image URLs so snapshots refresh without extra backend calls.
 - Weather:
   - Adapter: `server/src/adapters/weather.ts`
   - Uses Open-Meteo for Hong Kong hourly temp, relative humidity, precipitation.

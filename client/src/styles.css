@@ -325,6 +325,31 @@ button { cursor: pointer; }
   background: #e95d4f;
   color: white;
 }
+.traffic-flow-card.camera-only {
+  background: linear-gradient(180deg, #204c72 0%, #123a5c 100%);
+}
+.traffic-camera-list {
+  display: grid;
+  gap: 8px;
+}
+.traffic-camera {
+  margin: 0;
+  display: grid;
+  gap: 5px;
+}
+.traffic-camera img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,.24);
+  background: rgba(255,255,255,.12);
+}
+.traffic-camera figcaption {
+  color: rgba(255,255,255,.82);
+  font-size: 11px;
+  line-height: 1.25;
+}
 .traffic-flow-empty {
   min-height: 220px;
   display: grid;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AlertTriangle, Bus, Clock, CloudRain, Droplets, Car as CarIcon, Gauge, Thermometer, TrainFront, Waves } from "lucide-react";
 import { DashboardPayload, EtaItem } from "../../../shared/types";
+import { cameraImageUrl, useCameraRefreshToken } from "../lib/camera";
 import { formatClock, formatMinutes, formatUpdated } from "../lib/format";
 
 interface Props {
@@ -172,6 +173,8 @@ function speedLabel(value?: number): string {
 }
 
 function TrafficFlowPane({ data }: { data: DashboardPayload }) {
+  const cameraToken = useCameraRefreshToken();
+
   return (
     <aside className="traffic-panel flow-board">
       <div className="traffic-flow-head">
@@ -181,13 +184,27 @@ function TrafficFlowPane({ data }: { data: DashboardPayload }) {
       {data.trafficFlow.roads.length ? (
         <div className="traffic-flow-grid">
           {data.trafficFlow.roads.map((road) => (
-            <article key={road.roadName} className={`traffic-flow-card ${road.status}`}>
+            <article key={road.roadName} className={`traffic-flow-card ${road.status} ${road.cameraOnly ? "camera-only" : ""}`}>
               <div>
                 <strong>{road.roadName}</strong>
-                <span>{road.validSegmentCount} live segments · {road.invalidSegmentCount} stale</span>
+                <span>{road.cameraOnly ? "traffic camera" : `${road.validSegmentCount} live segments - ${road.invalidSegmentCount} stale`}</span>
               </div>
-              <b><Gauge size={18} /> {speedLabel(road.representativeSpeedKph)}</b>
-              <small>Slowest {speedLabel(road.slowestSpeedKph)}</small>
+              {!road.cameraOnly && (
+                <>
+                  <b><Gauge size={18} /> {speedLabel(road.representativeSpeedKph)}</b>
+                  <small>Slowest {speedLabel(road.slowestSpeedKph)}</small>
+                </>
+              )}
+              {road.cameras?.length ? (
+                <div className="traffic-camera-list">
+                  {road.cameras.map((camera) => (
+                    <figure key={camera.key} className="traffic-camera">
+                      <img src={cameraImageUrl(camera.imageUrl, cameraToken)} alt={camera.description} loading="lazy" />
+                      <figcaption>{camera.description}</figcaption>
+                    </figure>
+                  ))}
+                </div>
+              ) : null}
             </article>
           ))}
         </div>

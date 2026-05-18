@@ -36,6 +36,8 @@ Open the client at `http://localhost:5173`.
 - The traffic-flow pane matches TomTom route guidance road names to HK Gov live speed segments. It is route context, not exact geometry matching.
 - Traffic-flow matching ignores generic numeric route tokens and de-duplicates cards by matched HK road name. For the Eastern Harbour to Aberdeen/Stubbs corridor, it expands sparse TomTom guidance with the expected road sequence before matching.
 - Traffic-flow matching is indexed and route-candidate capped so debug matching cannot monopolize the API server.
+- Traffic-flow cards can include HK Gov traffic camera snapshots matched by route road name. Camera-only cards are inserted in route order when a camera matches but no speed segment card exists.
+- Traffic camera image URLs get a 2-minute frontend cache-buster so snapshots refresh on the public camera cadence without extra backend calls.
 - The sidebar Traffic debug page has no auto refresh; use its Update button to manually test TomTom road-name extraction and HK speed-flow matching.
 - Traffic debug force-refreshes TomTom by default, skips toll-free by default for faster route-flow testing, shows backend key visibility, and reports TomTom/HK-flow timings.
 

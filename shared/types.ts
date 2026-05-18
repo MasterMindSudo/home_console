@@ -80,6 +80,15 @@ export interface CarRouteEstimate {
 
 export type TrafficFlowStatus = "smooth" | "moderate" | "slow" | "stale";
 
+export interface TrafficCamera {
+  key: string;
+  description: string;
+  imageUrl: string;
+  roadName?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 export interface TrafficFlowRoad {
   roadName: string;
   representativeSpeedKph?: number;
@@ -87,6 +96,8 @@ export interface TrafficFlowRoad {
   validSegmentCount: number;
   invalidSegmentCount: number;
   status: TrafficFlowStatus;
+  cameras?: TrafficCamera[];
+  cameraOnly?: boolean;
 }
 
 export interface CommuteProfile {

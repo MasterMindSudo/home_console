@@ -1,9 +1,11 @@
-import { SourceStatus, TrafficFlowRoad, TrafficFlowStatus } from "../../../shared/types";
+import { SourceStatus, TrafficCamera, TrafficFlowRoad, TrafficFlowStatus } from "../../../shared/types";
 import fetch from "node-fetch";
 
 const SPEED_XML_URL = "https://resource.data.one.gov.hk/td/traffic-detectors/irnAvgSpeed-all.xml";
 const SEGMENT_INFO_URL = "https://static.data.gov.hk/td/traffic-data-strategic-major-roads/info/speed_segments_info.csv";
+const CAMERA_LOCATION_URL = "https://static.data.gov.hk/td/traffic-snapshot-images/code/Traffic_Camera_Locations_En.csv";
 const SEGMENT_CACHE_MS = 24 * 60 * 60 * 1000;
+const CAMERA_CACHE_MS = 24 * 60 * 60 * 1000;
 const EASTERN_HARBOUR_COMMON_ROADS = [
   "LEI YUE MUN ROAD",
   "KWUN TONG BYPASS",
@@ -51,6 +53,7 @@ interface TrafficFlowResult {
 }
 
 let segmentCache: { fetchedAt: number; items: SegmentInfo[] } | undefined;
+let cameraCache: { fetchedAt: number; items: TrafficCamera[] } | undefined;
 
 function decodeXml(value: string): string {
   return value
@@ -93,6 +96,43 @@ export function parseSegmentInfoCsv(csv: string): SegmentInfo[] {
     .map((item) => ({ ...item, roadKey: normalizeRoadName(item.roadName) }));
 }
 
+function delimitedRows(text: string): string[][] {
+  const [header = ""] = text.split(/\r?\n/, 1);
+  const delimiter = header.includes("\t") ? "\t" : ",";
+  return text
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((line) => line.trim())
+    .map((line) => line.split(delimiter).map(csvValue));
+}
+
+export function parseCameraLocationsCsv(text: string): TrafficCamera[] {
+  const rows = delimitedRows(text);
+  const header = rows.shift()?.map((item) => item.toLowerCase()) || [];
+  const index = (name: string) => header.indexOf(name);
+  const keyIndex = index("key");
+  const descriptionIndex = index("description");
+  const urlIndex = index("url");
+  const latitudeIndex = index("latitude");
+  const longitudeIndex = index("longitude");
+
+  return rows
+    .map((row) => {
+      const key = row[keyIndex] || "";
+      const description = row[descriptionIndex] || "";
+      const latitude = Number(row[latitudeIndex]);
+      const longitude = Number(row[longitudeIndex]);
+      return {
+        key,
+        description,
+        imageUrl: row[urlIndex] || `https://tdcctv.data.one.gov.hk/${encodeURIComponent(key)}.JPG`,
+        latitude: Number.isFinite(latitude) ? latitude : undefined,
+        longitude: Number.isFinite(longitude) ? longitude : undefined
+      };
+    })
+    .filter((item) => item.key && item.description && item.imageUrl);
+}
+
 export function parseSpeedXml(xml: string): SpeedPayload {
   const date = xml.match(/<date>(.*?)<\/date>/)?.[1];
   const time = xml.match(/<time>(.*?)<\/time>/)?.[1];
@@ -132,18 +172,22 @@ function isNumericRoadKey(value: string): boolean {
   return /^[0-9]+[A-Z]?$/.test(value);
 }
 
-function uniqueRouteKeys(routeRoadNames: string[]): string[] {
+function displayRoadName(key: string): string {
+  return key;
+}
+
+function uniqueRouteCandidates(routeRoadNames: string[]): Array<{ name: string; key: string }> {
   const seen = new Set<string>();
-  const keys: string[] = [];
+  const candidates: Array<{ name: string; key: string }> = [];
   expandRouteRoadNames(routeRoadNames)
-    .map(normalizeRoadName)
-    .filter((key) => key && !isNumericRoadKey(key))
-    .forEach((key) => {
+    .map((name) => ({ name, key: normalizeRoadName(name) }))
+    .filter((item) => item.key && !isNumericRoadKey(item.key))
+    .forEach(({ name, key }) => {
       if (seen.has(key)) return;
       seen.add(key);
-      keys.push(key);
+      candidates.push({ name: displayRoadName(normalizeRoadName(name)), key });
     });
-  return keys.slice(0, 32);
+  return candidates.slice(0, 32);
 }
 
 function segmentIndex(segmentInfo: SegmentInfo[]): Map<string, SegmentInfo[]> {
@@ -168,6 +212,28 @@ function findMatchingSegments(routeKey: string, segmentsByRoad: Map<string, Segm
   return [];
 }
 
+function matchCameraToRouteKey(camera: TrafficCamera, routeCandidates: Array<{ key: string }>): string | undefined {
+  const descriptionKey = normalizeRoadName(camera.description);
+  const matches = routeCandidates
+    .filter((candidate) => descriptionKey.includes(candidate.key))
+    .map((candidate) => ({ key: candidate.key, index: descriptionKey.indexOf(candidate.key), length: candidate.key.length }))
+    .sort((a, b) => a.index - b.index || b.length - a.length);
+  return matches[0]?.key;
+}
+
+function camerasByRouteKey(cameras: TrafficCamera[], routeCandidates: Array<{ name: string; key: string }>): Map<string, TrafficCamera[]> {
+  const matched = new Map<string, TrafficCamera[]>();
+  cameras.forEach((camera) => {
+    const routeKey = matchCameraToRouteKey(camera, routeCandidates);
+    if (!routeKey) return;
+    const routeName = routeCandidates.find((candidate) => candidate.key === routeKey)?.name;
+    const current = matched.get(routeKey) || [];
+    current.push({ ...camera, roadName: routeName });
+    matched.set(routeKey, current);
+  });
+  return matched;
+}
+
 function expandRouteRoadNames(routeRoadNames: string[]): string[] {
   const normalized = routeRoadNames.map(normalizeRoadName);
   const expanded = [...routeRoadNames];
@@ -185,16 +251,29 @@ function expandRouteRoadNames(routeRoadNames: string[]): string[] {
   return [...corridorRoads, ...expanded];
 }
 
-export function aggregateTrafficFlow(routeRoadNames: string[], segmentInfo: SegmentInfo[], speeds: SpeedPayload): TrafficFlowRoad[] {
-  const routeKeys = uniqueRouteKeys(routeRoadNames);
+export function aggregateTrafficFlow(routeRoadNames: string[], segmentInfo: SegmentInfo[], speeds: SpeedPayload, cameras: TrafficCamera[] = []): TrafficFlowRoad[] {
+  const routeCandidates = uniqueRouteCandidates(routeRoadNames);
   const segmentsByRoad = segmentIndex(segmentInfo);
   const speedBySegment = new Map(speeds.items.map((item) => [item.segmentId, item]));
+  const cameraMatches = camerasByRouteKey(cameras, routeCandidates);
   const usedRoads = new Set<string>();
   const roads: TrafficFlowRoad[] = [];
 
-  routeKeys.forEach((routeKey) => {
-    const matchingSegments = findMatchingSegments(routeKey, segmentsByRoad);
-    if (!matchingSegments.length) return;
+  routeCandidates.forEach((routeRoad) => {
+    const matchingSegments = findMatchingSegments(routeRoad.key, segmentsByRoad);
+    const matchedCameras = (cameraMatches.get(routeRoad.key) || []).slice(0, 2);
+    if (!matchingSegments.length) {
+      if (!matchedCameras.length) return;
+      roads.push({
+        roadName: routeRoad.name,
+        validSegmentCount: 0,
+        invalidSegmentCount: 0,
+        status: "stale",
+        cameras: matchedCameras,
+        cameraOnly: true
+      });
+      return;
+    }
 
     const matchedRoadKey = matchingSegments[0].roadKey;
     if (usedRoads.has(matchedRoadKey)) return;
@@ -212,7 +291,8 @@ export function aggregateTrafficFlow(routeRoadNames: string[], segmentInfo: Segm
       slowestSpeedKph: typeof slowestSpeed === "number" ? Math.round(slowestSpeed * 10) / 10 : undefined,
       validSegmentCount: validSpeeds.length,
       invalidSegmentCount,
-      status: flowStatus(representativeSpeed, validSpeeds.length)
+      status: flowStatus(representativeSpeed, validSpeeds.length),
+      cameras: matchedCameras
     });
   });
 
@@ -222,7 +302,15 @@ export function aggregateTrafficFlow(routeRoadNames: string[], segmentInfo: Segm
 async function fetchText(url: string, timeoutMs = 10000): Promise<string> {
   const response = await fetch(url, { timeout: timeoutMs });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-  return response.text();
+  const buffer = await response.buffer();
+  if (buffer.length >= 4) {
+    const hasUtf16LeBom = buffer[0] === 0xFF && buffer[1] === 0xFE;
+    const hasManyNulls = buffer.slice(0, Math.min(buffer.length, 80)).filter((byte, index) => index % 2 === 1 && byte === 0).length > 10;
+    if (hasUtf16LeBom || hasManyNulls) {
+      return buffer.toString("utf16le").replace(/^\uFEFF/, "");
+    }
+  }
+  return buffer.toString("utf8");
 }
 
 async function getSegmentInfo(): Promise<SegmentInfo[]> {
@@ -234,18 +322,28 @@ async function getSegmentInfo(): Promise<SegmentInfo[]> {
   return items;
 }
 
+async function getTrafficCameras(): Promise<TrafficCamera[]> {
+  const now = Date.now();
+  if (cameraCache && now - cameraCache.fetchedAt < CAMERA_CACHE_MS) return cameraCache.items;
+  const csv = await fetchText(CAMERA_LOCATION_URL, 20000);
+  const items = parseCameraLocationsCsv(csv);
+  cameraCache = { fetchedAt: now, items };
+  return items;
+}
+
 export async function getTrafficFlow(routeRoadNames: string[] = []): Promise<TrafficFlowResult> {
   if (!routeRoadNames.length) {
     return { status: { health: "not_configured", message: "No TomTom route road names available." }, roads: [], matchedRoadNames: [] };
   }
 
   try {
-    const [segmentInfo, speedXml] = await Promise.all([
+    const [segmentInfo, speedXml, cameras] = await Promise.all([
       getSegmentInfo(),
-      fetchText(SPEED_XML_URL, 15000)
+      fetchText(SPEED_XML_URL, 15000),
+      getTrafficCameras().catch(() => [])
     ]);
     const speeds = parseSpeedXml(speedXml);
-    const roads = aggregateTrafficFlow(routeRoadNames, segmentInfo, speeds);
+    const roads = aggregateTrafficFlow(routeRoadNames, segmentInfo, speeds, cameras);
     return {
       status: {
         health: roads.length ? "ok" : "stale",

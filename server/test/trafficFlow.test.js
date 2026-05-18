@@ -2,6 +2,7 @@ const assert = require("assert");
 const {
   aggregateTrafficFlow,
   normalizeRoadName,
+  parseCameraLocationsCsv,
   parseSegmentInfoCsv,
   parseSpeedXml
 } = require("../../dist/server/server/src/adapters/trafficFlow");
@@ -72,5 +73,30 @@ const corridorRoads = aggregateTrafficFlow(["Lei Yue Mun Road", "Eastern Harbour
   ]
 });
 assert.deepStrictEqual(corridorRoads.map((road) => road.roadName), ["LEI YUE MUN ROAD", "KWUN TONG BY-PASS", "ISLAND EASTERN CORRIDOR", "GLOUCESTER ROAD"]);
+
+const cameras = parseCameraLocationsCsv(`key\tregion\tdistrict\tdescription\teasting\tnorthing\tlatitude\tlongitude\turl
+H210F\tHong Kong Island\tWan Chai\tAberdeen Tunnel - Wan Chai Side [H210F]\t836525.0\t815094.0\t22.2747\t114.17936\thttps://tdcctv.data.one.gov.hk/H210F.JPG
+H904F\tHong Kong Island\tWan Chai\tCanal Road Flyover near Gloucester Road [H904F]\t836731.0\t815614.0\t22.2793944\t114.1813669\thttps://tdcctv.data.one.gov.hk/H904F.JPG
+`);
+const utf16Cameras = parseCameraLocationsCsv(Buffer.from(`\uFEFFkey\tregion\tdistrict\tdescription\teasting\tnorthing\tlatitude\tlongitude\turl
+H421F\tHong Kong Island\tSouthern\tAberdeen Tunnel - Aberdeen Side [H421F]\t836134.0\t812344.0\t22.24986\t114.17557\thttps://tdcctv.data.one.gov.hk/H421F.JPG
+`, "utf16le").toString("utf16le"));
+assert.strictEqual(cameras.length, 2);
+assert.strictEqual(utf16Cameras.length, 1);
+assert.strictEqual(cameras[0].key, "H210F");
+assert.strictEqual(cameras[0].latitude, 22.2747);
+
+const cameraRoads = aggregateTrafficFlow(["Lei Yue Mun Road", "Eastern Harbour Crossing Tunnel", "Island Eastern Corridor"], segmentInfo, {
+  items: [
+    { segmentId: "6", speedKph: 35, valid: true },
+    { segmentId: "8", speedKph: 62, valid: true },
+    { segmentId: "9", speedKph: 48, valid: true }
+  ]
+}, cameras);
+const gloucesterCard = cameraRoads.find((road) => road.roadName === "GLOUCESTER ROAD");
+assert.strictEqual((gloucesterCard.cameras || []).length, 0);
+const cameraOnlyCard = cameraRoads.find((road) => road.roadName === "CANAL ROAD FLYOVER");
+assert.strictEqual(cameraOnlyCard.cameraOnly, true);
+assert.strictEqual(cameraOnlyCard.cameras[0].key, "H904F");
 
 console.log("traffic flow tests passed");
