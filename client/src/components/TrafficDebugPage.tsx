@@ -157,7 +157,7 @@ export function TrafficDebugPage({ profileId }: Props) {
                     {!road.cameraOnly && (
                       <>
                         <b><Gauge size={18} /> {formatSpeedKph(road.representativeSpeedKph)}</b>
-                        <small>Slowest {formatSpeedKph(road.slowestSpeedKph)}</small>
+                        <small>Slowest {formatSpeedKph(road.slowestSpeedKph)} · Max {formatSpeedKph(road.maxSpeedKph)}</small>
                       </>
                     )}
                     {road.cameras?.length ? (

@@ -93,6 +93,7 @@ export interface TrafficFlowRoad {
   roadName: string;
   representativeSpeedKph?: number;
   slowestSpeedKph?: number;
+  maxSpeedKph?: number;
   validSegmentCount: number;
   invalidSegmentCount: number;
   status: TrafficFlowStatus;

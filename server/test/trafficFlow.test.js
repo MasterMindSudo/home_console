@@ -47,6 +47,7 @@ assert.strictEqual(roads.length, 1);
 assert.strictEqual(roads[0].roadName, "WATERLOO ROAD");
 assert.strictEqual(roads[0].representativeSpeedKph, 42.3);
 assert.strictEqual(roads[0].slowestSpeedKph, 22);
+assert.strictEqual(roads[0].maxSpeedKph, 62.5);
 assert.strictEqual(roads[0].validSegmentCount, 2);
 assert.strictEqual(roads[0].invalidSegmentCount, 1);
 assert.strictEqual(roads[0].status, "moderate");

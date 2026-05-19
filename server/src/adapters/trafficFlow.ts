@@ -285,12 +285,14 @@ export function aggregateTrafficFlow(routeRoadNames: string[], segmentInfo: Segm
     const validSpeeds = matchedSpeeds.filter((item) => item.valid && typeof item.speedKph === "number").map((item) => item.speedKph as number);
     const representativeSpeed = median(validSpeeds);
     const slowestSpeed = validSpeeds.length ? Math.min(...validSpeeds) : undefined;
+    const maxSpeed = validSpeeds.length ? Math.max(...validSpeeds) : undefined;
     const invalidSegmentCount = Math.max(0, matchingSegments.length - validSpeeds.length);
 
     roads.push({
       roadName: matchingSegments[0].roadName,
       representativeSpeedKph: typeof representativeSpeed === "number" ? Math.round(representativeSpeed * 10) / 10 : undefined,
       slowestSpeedKph: typeof slowestSpeed === "number" ? Math.round(slowestSpeed * 10) / 10 : undefined,
+      maxSpeedKph: typeof maxSpeed === "number" ? Math.round(maxSpeed * 10) / 10 : undefined,
       validSegmentCount: validSpeeds.length,
       invalidSegmentCount,
       status: flowStatus(representativeSpeed, validSpeeds.length),
