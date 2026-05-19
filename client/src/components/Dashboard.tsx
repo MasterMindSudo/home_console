@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AlertTriangle, Bus, Clock, CloudRain, Droplets, Car as CarIcon, Gauge, Thermometer, TrainFront, Waves } from "lucide-react";
-import { DashboardPayload, EtaItem, TrafficCamera } from "../../../shared/types";
+import { CarRouteEstimate, DashboardPayload, EtaItem, TrafficCamera, TrafficSpeedNode } from "../../../shared/types";
 import { cameraImageUrl, useCameraRefreshToken, useRotatingIndex } from "../lib/camera";
 import { formatClock, formatMinutes, formatSpeedKph, formatUpdated } from "../lib/format";
 
@@ -146,25 +146,79 @@ function CarLane({ data }: { data: DashboardPayload }) {
         <SourcePill health={data.car.status.health} updatedAt={data.car.status.updatedAt} />
       </div>
       <div className="car-route-grid">
-        <div className="car-route-row">
-          <div>
-            <strong>Fastest</strong>
-            <span>{fastest?.usesToll ? "Uses toll" : "No toll flagged"}</span>
-          </div>
-          <b>{formatMinutes(fastest?.travelMinutes || data.car.travelMinutes)}</b>
-          <span>{formatClock(fastest?.arrivalTime || data.car.arrivalTime)}</span>
-        </div>
-        <div className="car-route-row">
-          <div>
-            <strong>{tollFree?.usesToll ? "Less toll" : "Toll-free"}</strong>
-            <span>{tollFree ? delta : "Not available"}</span>
-          </div>
-          <b>{formatMinutes(tollFree?.travelMinutes)}</b>
-          <span>{formatClock(tollFree?.arrivalTime)}</span>
-        </div>
+        <CarRouteRow
+          title="Fastest"
+          subtitle={fastest?.usesToll ? "Uses toll" : "No toll flagged"}
+          route={fastest}
+          fallbackMinutes={data.car.travelMinutes}
+          fallbackArrival={data.car.arrivalTime}
+        />
+        <CarRouteRow
+          title={tollFree?.usesToll ? "Less toll" : "Toll-free"}
+          subtitle={tollFree ? delta : "Not available"}
+          route={tollFree}
+        />
       </div>
       {data.car.status.message && <p className="muted lane-message">{data.car.status.message}</p>}
     </article>
+  );
+}
+
+function nodeSummary(nodes: TrafficSpeedNode[] = []): { min?: number; avg?: number; max?: number } {
+  const minValues = nodes.map((node) => node.minSpeedKph).filter((value): value is number => typeof value === "number");
+  const avgValues = nodes.map((node) => node.averageSpeedKph).filter((value): value is number => typeof value === "number");
+  const maxValues = nodes.map((node) => node.maxSpeedKph).filter((value): value is number => typeof value === "number");
+  return {
+    min: minValues.length ? Math.min(...minValues) : undefined,
+    avg: avgValues.length ? avgValues.reduce((sum, value) => sum + value, 0) / avgValues.length : undefined,
+    max: maxValues.length ? Math.max(...maxValues) : undefined
+  };
+}
+
+function CarSpeedTrack({ nodes = [] }: { nodes?: TrafficSpeedNode[] }) {
+  const displayNodes = nodes.slice(0, 8);
+  const summary = nodeSummary(displayNodes);
+  if (!displayNodes.length) {
+    return <div className="car-speed-empty">No matched speed nodes</div>;
+  }
+
+  return (
+    <div className="car-speed-track-wrap">
+      <div className="car-speed-track" aria-hidden="true">
+        {displayNodes.map((node, index) => (
+          <span key={`${node.roadName}-${index}`} className={`car-speed-node ${node.status}`} title={`${node.roadName}: avg ${formatSpeedKph(node.averageSpeedKph)}`} />
+        ))}
+      </div>
+      <span className="car-speed-summary">
+        Min {formatSpeedKph(summary.min)} · Avg {formatSpeedKph(summary.avg)} · Max {formatSpeedKph(summary.max)}
+      </span>
+    </div>
+  );
+}
+
+function CarRouteRow({
+  title,
+  subtitle,
+  route,
+  fallbackMinutes,
+  fallbackArrival
+}: {
+  title: string;
+  subtitle: string;
+  route?: CarRouteEstimate;
+  fallbackMinutes?: number;
+  fallbackArrival?: string;
+}) {
+  return (
+    <div className="car-route-row with-speed-track">
+      <div className="car-route-meta">
+        <strong>{title}</strong>
+        <span>{subtitle}</span>
+      </div>
+      <CarSpeedTrack nodes={route?.speedNodes} />
+      <b>{formatMinutes(route?.travelMinutes || fallbackMinutes)}</b>
+      <span>{formatClock(route?.arrivalTime || fallbackArrival)}</span>
+    </div>
   );
 }
 

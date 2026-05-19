@@ -198,12 +198,10 @@ async function calculateCarRoute(car: CarConfig, label: "fastest" | "toll_free",
     routeType: "fastest",
     routeRepresentation: "summaryOnly",
     language: "en-GB",
+    instructionsType: "text",
     sectionType: "toll",
     includeTollPaymentTypes: "all"
   });
-  if (label === "fastest") {
-    params.append("instructionsType", "text");
-  }
   if (label === "toll_free") {
     params.append("avoid", "tollRoads");
   }
@@ -220,7 +218,7 @@ async function calculateCarRoute(car: CarConfig, label: "fastest" | "toll_free",
     travelMinutes,
     arrivalTime: minutesToArrival(travelMinutes),
     usesToll: hasTollSection(route),
-    routeRoadNames: label === "fastest" ? extractRoadNames(route) : undefined,
+    routeRoadNames: extractRoadNames(route),
     keyLabel
   };
 }

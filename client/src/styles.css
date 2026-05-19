@@ -261,6 +261,69 @@ button { cursor: pointer; }
 .car-route-row b {
   font-size: 28px;
 }
+.car-route-row.with-speed-track {
+  grid-template-columns: minmax(128px, .7fr) minmax(220px, 1.4fr) 96px 82px;
+}
+.car-route-meta {
+  min-width: 0;
+}
+.car-speed-track-wrap {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.car-speed-track {
+  position: relative;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.car-speed-track::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  height: 4px;
+  border-radius: 999px;
+  background: #2e4640;
+}
+.car-speed-node {
+  position: relative;
+  z-index: 1;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid #2e4640;
+}
+.car-speed-node:first-child,
+.car-speed-node:last-child {
+  width: 18px;
+  height: 18px;
+  border-color: #c99316;
+}
+.car-speed-node.slow {
+  border-color: #a23d2d;
+}
+.car-speed-node.moderate {
+  border-color: #c99316;
+}
+.car-speed-node.stale {
+  border-style: dashed;
+  border-color: #8a9a95;
+}
+.car-speed-summary,
+.car-speed-empty {
+  color: #60706b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.car-speed-empty {
+  align-self: center;
+}
 .traffic-panel {
   background: white;
   border: 1px solid #dfe6df;
@@ -793,5 +856,6 @@ legend { font-weight: 900; padding: 0 8px; }
   .lane-body.with-previous { grid-template-columns: 1fr; }
   .lane-head { align-items: start; }
   .car-route-row { grid-template-columns: 1fr; }
+  .car-route-row.with-speed-track { grid-template-columns: 1fr; }
   .eta-table { grid-template-columns: 1fr; }
 }

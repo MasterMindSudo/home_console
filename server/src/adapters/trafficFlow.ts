@@ -1,4 +1,4 @@
-import { SourceStatus, TrafficCamera, TrafficFlowRoad, TrafficFlowStatus } from "../../../shared/types";
+import { SourceStatus, TrafficCamera, TrafficFlowRoad, TrafficFlowStatus, TrafficSpeedNode } from "../../../shared/types";
 import fetch from "node-fetch";
 
 const SPEED_XML_URL = "https://resource.data.one.gov.hk/td/traffic-detectors/irnAvgSpeed-all.xml";
@@ -163,6 +163,15 @@ function median(values: number[]): number | undefined {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
+function average(values: number[]): number | undefined {
+  if (!values.length) return undefined;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function roundSpeed(value: number | undefined): number | undefined {
+  return typeof value === "number" ? Math.round(value * 10) / 10 : undefined;
+}
+
 function flowStatus(speed: number | undefined, validSegmentCount: number): TrafficFlowStatus {
   if (typeof speed !== "number" || !validSegmentCount) return "stale";
   if (speed < 30) return "slow";
@@ -284,15 +293,17 @@ export function aggregateTrafficFlow(routeRoadNames: string[], segmentInfo: Segm
     const matchedSpeeds = matchingSegments.map((segment) => speedBySegment.get(segment.segmentId)).filter(Boolean) as SpeedItem[];
     const validSpeeds = matchedSpeeds.filter((item) => item.valid && typeof item.speedKph === "number").map((item) => item.speedKph as number);
     const representativeSpeed = median(validSpeeds);
+    const averageSpeed = average(validSpeeds);
     const slowestSpeed = validSpeeds.length ? Math.min(...validSpeeds) : undefined;
     const maxSpeed = validSpeeds.length ? Math.max(...validSpeeds) : undefined;
     const invalidSegmentCount = Math.max(0, matchingSegments.length - validSpeeds.length);
 
     roads.push({
       roadName: matchingSegments[0].roadName,
-      representativeSpeedKph: typeof representativeSpeed === "number" ? Math.round(representativeSpeed * 10) / 10 : undefined,
-      slowestSpeedKph: typeof slowestSpeed === "number" ? Math.round(slowestSpeed * 10) / 10 : undefined,
-      maxSpeedKph: typeof maxSpeed === "number" ? Math.round(maxSpeed * 10) / 10 : undefined,
+      representativeSpeedKph: roundSpeed(representativeSpeed),
+      averageSpeedKph: roundSpeed(averageSpeed),
+      slowestSpeedKph: roundSpeed(slowestSpeed),
+      maxSpeedKph: roundSpeed(maxSpeed),
       validSegmentCount: validSpeeds.length,
       invalidSegmentCount,
       status: flowStatus(representativeSpeed, validSpeeds.length),
@@ -301,6 +312,18 @@ export function aggregateTrafficFlow(routeRoadNames: string[], segmentInfo: Segm
   });
 
   return roads.slice(0, 8);
+}
+
+export function trafficRoadsToSpeedNodes(roads: TrafficFlowRoad[]): TrafficSpeedNode[] {
+  return roads
+    .filter((road) => !road.cameraOnly)
+    .map((road) => ({
+      roadName: road.roadName,
+      averageSpeedKph: road.averageSpeedKph ?? road.representativeSpeedKph,
+      minSpeedKph: road.slowestSpeedKph,
+      maxSpeedKph: road.maxSpeedKph,
+      status: road.status
+    }));
 }
 
 async function fetchText(url: string, timeoutMs = 10000): Promise<string> {

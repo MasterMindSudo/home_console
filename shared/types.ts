@@ -71,11 +71,21 @@ export interface CarConfig {
   destination: Coordinate;
 }
 
+export interface TrafficSpeedNode {
+  roadName: string;
+  averageSpeedKph?: number;
+  minSpeedKph?: number;
+  maxSpeedKph?: number;
+  status: TrafficFlowStatus;
+}
+
 export interface CarRouteEstimate {
   label: "fastest" | "toll_free";
   travelMinutes: number;
   arrivalTime: string;
   usesToll: boolean;
+  routeRoadNames?: string[];
+  speedNodes?: TrafficSpeedNode[];
 }
 
 export type TrafficFlowStatus = "smooth" | "moderate" | "slow" | "stale";
@@ -92,6 +102,7 @@ export interface TrafficCamera {
 export interface TrafficFlowRoad {
   roadName: string;
   representativeSpeedKph?: number;
+  averageSpeedKph?: number;
   slowestSpeedKph?: number;
   maxSpeedKph?: number;
   validSegmentCount: number;
