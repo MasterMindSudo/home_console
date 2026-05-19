@@ -42,6 +42,7 @@ Read this file at the start of future Codex sessions when the chat context is mi
 - Normal development should happen on `dev`.
 - Do not push every small change to `main`.
 - Only merge `dev` to `main` for deliberate major/stable releases.
+- If a production hotfix ever lands directly on `main`, immediately fast-forward or merge `main` back into `dev` before starting new work.
 - Trigger Render redeployment only after merging a release to `main`, unless Kevin explicitly asks for an emergency prod deploy.
 - Render service should be a Node Web Service, not a Static Site.
 - Build command: `npm ci && npm run build`
