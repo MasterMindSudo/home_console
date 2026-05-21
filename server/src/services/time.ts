@@ -48,6 +48,14 @@ function scoreDestination(origin: EtaItem, destination: EtaItem, profile: BusPai
   return targetDistance + sequencePenalty;
 }
 
+function baselineStatus(deltaMinutes?: number): "faster" | "normal" | "slower" | "delayed" | "unknown" {
+  if (typeof deltaMinutes !== "number") return "unknown";
+  if (deltaMinutes <= -5) return "faster";
+  if (deltaMinutes <= 5) return "normal";
+  if (deltaMinutes <= 12) return "slower";
+  return "delayed";
+}
+
 export function pairBusEtas(originEtas: EtaItem[], destinationEtas: EtaItem[], latestArrivalTime: string, pairingProfile?: BusPairingProfile): PairedBusEta[] {
   const profile = pairingProfile || DEFAULT_PAIRING_PROFILE;
   const destinationByOperator = new Map<string, EtaItem[]>();
@@ -82,12 +90,20 @@ export function pairBusEtas(originEtas: EtaItem[], destinationEtas: EtaItem[], l
       : destination
         ? "operator_order"
         : "unavailable";
+    const liveTravelMinutes = typeof destination?.minutes === "number" ? destination.minutes - origin.minutes : undefined;
+    const deltaMinutes = typeof liveTravelMinutes === "number" ? liveTravelMinutes - profile.targetTravelMinutes : undefined;
     return {
       origin,
       destination,
       projectedArrival,
       arrivalStatus: classifyArrival(projectedArrival, latestArrivalTime),
-      confidence
+      confidence,
+      baseline: {
+        targetTravelMinutes: profile.targetTravelMinutes,
+        deltaMinutes,
+        status: baselineStatus(deltaMinutes),
+        source: profile.source
+      }
     } as PairedBusEta;
   });
 

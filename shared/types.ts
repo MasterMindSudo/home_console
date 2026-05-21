@@ -152,6 +152,12 @@ export interface PairedBusEta {
   projectedArrival?: string;
   arrivalStatus: "on_time" | "late" | "unknown";
   confidence: "exact" | "operator_order" | "approximate" | "unavailable";
+  baseline?: {
+    targetTravelMinutes: number;
+    deltaMinutes?: number;
+    status: "faster" | "normal" | "slower" | "delayed" | "unknown";
+    source: "gtfs" | "default";
+  };
 }
 
 export interface SourceStatus {
@@ -182,6 +188,13 @@ export interface DashboardPayload {
     originEtas: EtaItem[];
     destinationEtas: EtaItem[];
     pairs: PairedBusEta[];
+    baseline?: {
+      targetTravelMinutes: number;
+      minTravelMinutes: number;
+      maxTravelMinutes: number;
+      headwayMinutes?: number;
+      source: "gtfs" | "default";
+    };
   };
   mtr: {
     status: SourceStatus;

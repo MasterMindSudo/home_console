@@ -96,5 +96,18 @@ const dynamicProfilePairs = pairBusEtas(
 
 assert.strictEqual(dynamicProfilePairs[0].destination.minutes, 29);
 assert.strictEqual(dynamicProfilePairs[0].confidence, "operator_order");
+assert.strictEqual(dynamicProfilePairs[0].baseline.targetTravelMinutes, 24);
+assert.strictEqual(dynamicProfilePairs[0].baseline.deltaMinutes, -1);
+assert.strictEqual(dynamicProfilePairs[0].baseline.status, "normal");
+
+const delayedBaselinePairs = pairBusEtas(
+  [{ eta: "2026-05-15T00:06:00.000Z", minutes: 6, operator: "KMB" }],
+  [{ eta: "2026-05-15T00:44:00.000Z", minutes: 44, operator: "KMB" }],
+  "08:55",
+  { minTravelMinutes: 20, targetTravelMinutes: 24, maxTravelMinutes: 50, source: "gtfs" }
+);
+
+assert.strictEqual(delayedBaselinePairs[0].baseline.deltaMinutes, 14);
+assert.strictEqual(delayedBaselinePairs[0].baseline.status, "delayed");
 
 console.log("time service tests passed");

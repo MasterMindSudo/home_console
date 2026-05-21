@@ -36,7 +36,17 @@ export async function buildDashboard(profileId: string): Promise<DashboardPayloa
     generatedAt: new Date().toISOString(),
     recommendation: firstStatus === "on_time" ? "bus_ok" : firstStatus === "late" ? "consider_alternative" : "unknown",
     weather,
-    bus: { ...busResult, pairs },
+    bus: {
+      ...busResult,
+      pairs,
+      baseline: busPairingProfile ? {
+        targetTravelMinutes: busPairingProfile.targetTravelMinutes,
+        minTravelMinutes: busPairingProfile.minTravelMinutes,
+        maxTravelMinutes: busPairingProfile.maxTravelMinutes,
+        headwayMinutes: busPairingProfile.headwayMinutes,
+        source: busPairingProfile.source
+      } : undefined
+    },
     mtr,
     car,
     tunnel: { status: { health: "not_configured", message: "Tunnel pane replaced by route traffic flow." } },

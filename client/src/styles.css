@@ -295,6 +295,7 @@ button { cursor: pointer; }
 }
 .bus-eta-main strong,
 .bus-eta-main span,
+.bus-eta-main small,
 .bus-eta-destination strong,
 .bus-eta-destination span {
   overflow: hidden;
@@ -306,9 +307,23 @@ button { cursor: pointer; }
   font-size: 15px;
 }
 .bus-eta-main span,
+.bus-eta-main small,
 .bus-eta-destination span {
   color: #60706b;
   font-size: 11px;
+}
+.bus-eta-main small {
+  display: block;
+}
+.bus-eta-card.faster .bus-eta-main small,
+.bus-eta-card.normal .bus-eta-main small {
+  color: #2f7d43;
+}
+.bus-eta-card.slower .bus-eta-main small {
+  color: #94660d;
+}
+.bus-eta-card.delayed .bus-eta-main small {
+  color: #a23d2d;
 }
 .bus-eta-destination {
   text-align: right;
@@ -996,6 +1011,7 @@ legend { font-weight: 900; padding: 0 8px; }
     font-size: 14px;
   }
   .bus-eta-main span,
+  .bus-eta-main small,
   .bus-eta-destination span {
     font-size: 10px;
   }

@@ -62,6 +62,20 @@ function formatSignedMinutes(minutes: number | undefined): string {
   return `${minutes} min`;
 }
 
+function baselineLabel(pair?: PairedBusEta): string {
+  if (!pair?.baseline) return "Normal --";
+  const delta = pair.baseline.deltaMinutes;
+  if (typeof delta !== "number") return `Normal ${pair.baseline.targetTravelMinutes} min`;
+  const suffix = pair.baseline.status === "faster"
+    ? "faster"
+    : pair.baseline.status === "normal"
+      ? "normal"
+      : pair.baseline.status === "delayed"
+        ? "delay"
+        : "slow";
+  return `Normal ${pair.baseline.targetTravelMinutes} min · ${formatSignedMinutes(delta)} ${suffix}`;
+}
+
 function leaveByLabel(leaveByIso: string | undefined, generatedAt: string): string {
   const minutes = timeUntil(leaveByIso, generatedAt);
   if (typeof minutes !== "number") return "Leave by --";
@@ -160,11 +174,12 @@ function BusEtaStack({ pairs }: { pairs: PairedBusEta[] }) {
             : undefined;
 
         return (
-          <article key={`${pair.origin?.eta || "origin"}-${pair.destination?.eta || "destination"}-${index}`} className={`bus-eta-card ${pair.arrivalStatus}`}>
+          <article key={`${pair.origin?.eta || "origin"}-${pair.destination?.eta || "destination"}-${index}`} className={`bus-eta-card ${pair.arrivalStatus} ${pair.baseline?.status || ""}`}>
             <span className="bus-eta-index">#{index + 1}</span>
             <div className="bus-eta-main">
               <strong>{formatMinutes(pair.origin?.minutes)} · {formatClock(pair.origin?.eta)}</strong>
               <span>{pair.origin?.operator || "Bus"} · {confidenceLabel(pair.confidence)}</span>
+              <small>{baselineLabel(pair)}</small>
             </div>
             <div className="bus-eta-destination">
               <strong>{formatClock(pair.projectedArrival)}</strong>
@@ -182,12 +197,14 @@ function ModeTimingHint({
   finalArrival,
   buffer,
   walk,
+  baseline,
   generatedAt
 }: {
   leaveBy?: string;
   finalArrival?: string;
   buffer?: number;
   walk?: ModeWalkTimeConfig;
+  baseline?: ReactNode;
   generatedAt: string;
 }) {
   return (
@@ -195,7 +212,7 @@ function ModeTimingHint({
       <span>{leaveByLabel(leaveBy, generatedAt)}</span>
       <span>Door arrival {formatClock(finalArrival)}</span>
       <strong className={(buffer ?? 0) < 0 ? "late" : "on_time"}>{formatSignedMinutes(buffer)} buffer</strong>
-      <small>{walkSummary(walk)}</small>
+      <small>{baseline || walkSummary(walk)}</small>
     </div>
   );
 }
@@ -459,7 +476,7 @@ export function Dashboard({ data }: Props) {
             message={`${data.profile.bus?.originStopName || "Origin stop"} to ${data.profile.bus?.destinationStopName || "destination stop"} · ${confidenceLabel(firstBus?.confidence)}`}
             extra={
               <>
-                <ModeTimingHint leaveBy={busLeaveBy} finalArrival={busFinalArrival} buffer={busBuffer} walk={busWalk} generatedAt={data.generatedAt} />
+                <ModeTimingHint leaveBy={busLeaveBy} finalArrival={busFinalArrival} buffer={busBuffer} walk={busWalk} baseline={baselineLabel(firstBus)} generatedAt={data.generatedAt} />
                 <BusEtaStack pairs={data.bus.pairs} />
               </>
             }
