@@ -26,6 +26,21 @@ const DB_SCHEMA_SQL = `
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS gtfs_imports (
+    id TEXT PRIMARY KEY,
+    source_url TEXT NOT NULL,
+    imported_at TEXT NOT NULL,
+    status TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS gtfs_route_patterns (
+    route_short_name TEXT PRIMARY KEY,
+    agency_id TEXT,
+    route_long_name TEXT,
+    patterns_json TEXT NOT NULL,
+    imported_at TEXT NOT NULL
+  );
 `;
 
 function resolvePostgresSsl(): boolean | { rejectUnauthorized: boolean } | undefined {

@@ -84,4 +84,17 @@ assert.strictEqual(noPlausibleDestinationPairs[0].destination, undefined);
 assert.strictEqual(noPlausibleDestinationPairs[0].arrivalStatus, "unknown");
 assert.strictEqual(noPlausibleDestinationPairs[0].confidence, "unavailable");
 
+const dynamicProfilePairs = pairBusEtas(
+  [{ eta: "2026-05-15T00:06:00.000Z", minutes: 6, operator: "KMB", etaSequence: 1 }],
+  [
+    { eta: "2026-05-15T00:29:00.000Z", minutes: 29, operator: "KMB", etaSequence: 1 },
+    { eta: "2026-05-15T00:41:00.000Z", minutes: 41, operator: "KMB", etaSequence: 2 }
+  ],
+  "08:55",
+  { minTravelMinutes: 20, targetTravelMinutes: 24, maxTravelMinutes: 34, source: "gtfs" }
+);
+
+assert.strictEqual(dynamicProfilePairs[0].destination.minutes, 29);
+assert.strictEqual(dynamicProfilePairs[0].confidence, "operator_order");
+
 console.log("time service tests passed");

@@ -1,6 +1,13 @@
 import { EtaItem, PairedBusEta } from "../../../shared/types";
+import { BusPairingProfile } from "./gtfsHeadway";
 
 const MIN_ORDER_MATCH_TRAVEL_MINUTES = 30;
+const DEFAULT_PAIRING_PROFILE: BusPairingProfile = {
+  minTravelMinutes: MIN_ORDER_MATCH_TRAVEL_MINUTES,
+  targetTravelMinutes: 35,
+  maxTravelMinutes: 75,
+  source: "default"
+};
 
 function hasExplicitTimezone(value: string): boolean {
   return /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
@@ -34,7 +41,15 @@ export function classifyArrival(arrivalIso: string | undefined, latestArrivalTim
   return parseApiDate(arrivalIso).getTime() <= latestArrivalToday(latestArrivalTime, now).getTime() ? "on_time" : "late";
 }
 
-export function pairBusEtas(originEtas: EtaItem[], destinationEtas: EtaItem[], latestArrivalTime: string): PairedBusEta[] {
+function scoreDestination(origin: EtaItem, destination: EtaItem, profile: BusPairingProfile): number {
+  const delta = destination.minutes - origin.minutes;
+  const targetDistance = Math.abs(delta - profile.targetTravelMinutes);
+  const sequencePenalty = origin.etaSequence && destination.etaSequence && origin.etaSequence !== destination.etaSequence ? 3 : 0;
+  return targetDistance + sequencePenalty;
+}
+
+export function pairBusEtas(originEtas: EtaItem[], destinationEtas: EtaItem[], latestArrivalTime: string, pairingProfile?: BusPairingProfile): PairedBusEta[] {
+  const profile = pairingProfile || DEFAULT_PAIRING_PROFILE;
   const destinationByOperator = new Map<string, EtaItem[]>();
   destinationEtas.forEach((eta) => {
     const operator = eta.operator || "unknown";
@@ -49,11 +64,18 @@ export function pairBusEtas(originEtas: EtaItem[], destinationEtas: EtaItem[], l
     const nextIndex = originOrderByOperator.get(operator) || 0;
     originOrderByOperator.set(operator, nextIndex + 1);
     const sameOperatorDestinations = destinationByOperator.get(operator) || [];
-    const hasEnoughDownstreamTime = (eta: EtaItem) => eta.minutes - origin.minutes >= MIN_ORDER_MATCH_TRAVEL_MINUTES;
+    const isPlausibleDownstreamTime = (eta: EtaItem) => {
+      const delta = eta.minutes - origin.minutes;
+      return delta >= profile.minTravelMinutes && delta <= profile.maxTravelMinutes;
+    };
+    const bestPlausibleDestination = sameOperatorDestinations
+      .filter(isPlausibleDownstreamTime)
+      .sort((a, b) => scoreDestination(origin, a, profile) - scoreDestination(origin, b, profile))[0];
     const destination =
       sameOperatorDestinations.find((eta) => eta.runId && origin.runId && eta.runId === origin.runId) ||
-      sameOperatorDestinations.find((eta) => eta.etaSequence && origin.etaSequence && eta.etaSequence === origin.etaSequence && hasEnoughDownstreamTime(eta)) ||
-      sameOperatorDestinations.slice(nextIndex).find(hasEnoughDownstreamTime);
+      sameOperatorDestinations.find((eta) => eta.etaSequence && origin.etaSequence && eta.etaSequence === origin.etaSequence && isPlausibleDownstreamTime(eta)) ||
+      sameOperatorDestinations.slice(nextIndex).find(isPlausibleDownstreamTime) ||
+      bestPlausibleDestination;
     const projectedArrival = destination?.eta;
     const confidence = destination?.runId && origin.runId && destination.runId === origin.runId
       ? "exact"

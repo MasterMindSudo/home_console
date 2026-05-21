@@ -6,6 +6,7 @@ import { getCarEta } from "../adapters/tomtom";
 import { getHourlyWeather } from "../adapters/weather";
 import { getTrafficFlow, trafficRoadsToSpeedNodes } from "../adapters/trafficFlow";
 import { pairBusEtas } from "./time";
+import { getBusPairingProfile } from "./gtfsHeadway";
 
 export async function buildDashboard(profileId: string): Promise<DashboardPayload | undefined> {
   const profile = await getProfile(profileId);
@@ -17,6 +18,7 @@ export async function buildDashboard(profileId: string): Promise<DashboardPayloa
     getMtrEstimate(profile.mtr),
     getCarEta(profile.car, profile.latestArrivalTime)
   ]);
+  const busPairingProfile = await getBusPairingProfile(profile.bus);
   const trafficFlow = await getTrafficFlow(car.routeRoadNames || []);
   if (car.fastest) {
     car.fastest.speedNodes = trafficRoadsToSpeedNodes(trafficFlow.roads);
@@ -26,7 +28,7 @@ export async function buildDashboard(profileId: string): Promise<DashboardPayloa
     car.tollFree.speedNodes = trafficRoadsToSpeedNodes(tollFreeTrafficFlow.roads);
   }
 
-  const pairs = pairBusEtas(busResult.originEtas, busResult.destinationEtas, profile.latestArrivalTime);
+  const pairs = pairBusEtas(busResult.originEtas, busResult.destinationEtas, profile.latestArrivalTime, busPairingProfile);
   const firstStatus = pairs[0]?.arrivalStatus;
 
   return {
