@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AlertTriangle, Bus, Clock, CloudRain, Droplets, Car as CarIcon, Gauge, Thermometer, TrainFront, Waves } from "lucide-react";
-import { CarRouteEstimate, DashboardPayload, EtaItem, TrafficCamera, TrafficSpeedNode } from "../../../shared/types";
+import { CarRouteEstimate, DashboardPayload, EtaItem, PairedBusEta, TrafficCamera, TrafficSpeedNode } from "../../../shared/types";
 import { cameraImageUrl, useCameraRefreshToken, useRotatingIndex } from "../lib/camera";
 import { formatClock, formatMinutes, formatSpeedKph, formatUpdated } from "../lib/format";
 
@@ -46,7 +46,9 @@ function JourneyLane({
   endMinutes,
   endLabel,
   markers = 10,
-  message
+  message,
+  extra,
+  className = ""
 }: {
   icon: ReactNode;
   title: string;
@@ -59,9 +61,11 @@ function JourneyLane({
   endLabel: string;
   markers?: number;
   message?: string;
+  extra?: ReactNode;
+  className?: string;
 }) {
   return (
-    <article className="journey-lane">
+    <article className={`journey-lane ${className}`}>
       <div className="lane-head">
         <div className="metric-title">{icon}{title}</div>
         {status}
@@ -88,7 +92,38 @@ function JourneyLane({
         </div>
       </div>
       {message && <p className="muted lane-message">{message}</p>}
+      {extra}
     </article>
+  );
+}
+
+function BusEtaStack({ pairs }: { pairs: PairedBusEta[] }) {
+  const visiblePairs = pairs.slice(0, 2);
+  if (!visiblePairs.length) return null;
+
+  return (
+    <div className="bus-eta-stack" aria-label="Next two bus arrivals">
+      {visiblePairs.map((pair, index) => {
+        const rideMinutes =
+          typeof pair.destination?.minutes === "number" && typeof pair.origin?.minutes === "number"
+            ? Math.max(0, pair.destination.minutes - pair.origin.minutes)
+            : undefined;
+
+        return (
+          <article key={`${pair.origin?.eta || "origin"}-${pair.destination?.eta || "destination"}-${index}`} className={`bus-eta-card ${pair.arrivalStatus}`}>
+            <span className="bus-eta-index">#{index + 1}</span>
+            <div className="bus-eta-main">
+              <strong>{formatMinutes(pair.origin?.minutes)} · {formatClock(pair.origin?.eta)}</strong>
+              <span>{pair.origin?.operator || "Bus"} · {confidenceLabel(pair.confidence)}</span>
+            </div>
+            <div className="bus-eta-destination">
+              <strong>{formatClock(pair.projectedArrival)}</strong>
+              <span>{formatMinutes(rideMinutes)} ride</span>
+            </div>
+          </article>
+        );
+      })}
+    </div>
   );
 }
 
@@ -315,6 +350,7 @@ export function Dashboard({ data }: Props) {
             icon={<Bus />}
             title={`Bus ${data.profile.bus?.route || ""}`}
             status={<SourcePill health={data.bus.status.health} updatedAt={data.bus.status.updatedAt} />}
+            className="bus-lane"
             previousMinutes={previousBus?.minutes}
             previousLabel={previousLabel}
             startMinutes={firstBus?.origin?.minutes}
@@ -323,6 +359,7 @@ export function Dashboard({ data }: Props) {
             endLabel={`ride · arrive ${formatClock(firstBus?.projectedArrival)}`}
             markers={12}
             message={`${data.profile.bus?.originStopName || "Origin stop"} to ${data.profile.bus?.destinationStopName || "destination stop"} · ${confidenceLabel(firstBus?.confidence)}`}
+            extra={<BusEtaStack pairs={data.bus.pairs} />}
           />
           <JourneyLane
             icon={<TrainFront />}

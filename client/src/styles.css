@@ -231,6 +231,67 @@ button { cursor: pointer; }
 .lane-message {
   margin: 10px 0 0;
 }
+.bus-eta-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.bus-eta-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid #dfe6df;
+  border-radius: 8px;
+  background: white;
+}
+.bus-eta-card.late {
+  border-color: rgba(162, 61, 45, .35);
+  background: #fff8f5;
+}
+.bus-eta-card.on_time {
+  border-color: rgba(47, 125, 67, .28);
+}
+.bus-eta-index {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #102826;
+  color: white;
+  font-size: 12px;
+  font-weight: 900;
+}
+.bus-eta-main,
+.bus-eta-destination {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.bus-eta-main strong,
+.bus-eta-main span,
+.bus-eta-destination strong,
+.bus-eta-destination span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bus-eta-main strong,
+.bus-eta-destination strong {
+  font-size: 15px;
+}
+.bus-eta-main span,
+.bus-eta-destination span {
+  color: #60706b;
+  font-size: 11px;
+}
+.bus-eta-destination {
+  text-align: right;
+}
 .car-compare {
   display: grid;
   gap: 12px;
@@ -769,27 +830,36 @@ legend { font-weight: 900; padding: 0 8px; }
   }
   .dashboard {
     height: 100%;
-    grid-template-rows: 132px 138px minmax(0, 1fr) 84px;
-    gap: 14px;
+    grid-template-rows: 132px 118px minmax(0, 1fr) 70px;
+    gap: 12px;
   }
   .hero-state.compact {
     min-height: 132px;
-    padding: 22px 26px;
+    padding: 18px 26px;
   }
   .hero-state.compact h1 {
-    font-size: 50px;
+    font-size: 42px;
+  }
+  .hero-state p {
+    margin-bottom: 0;
   }
   .weather-pane {
-    padding: 12px 16px;
+    padding: 10px 14px;
   }
   .weather-head {
-    margin-bottom: 9px;
+    margin-bottom: 7px;
   }
   .weather-hour {
-    flex-basis: 118px;
-    min-height: 86px;
-    padding: 9px 10px;
-    gap: 5px;
+    flex-basis: 112px;
+    min-height: 78px;
+    padding: 7px 9px;
+    gap: 3px;
+  }
+  .weather-hour strong {
+    font-size: 14px;
+  }
+  .weather-hour span {
+    font-size: 12px;
   }
   .journey-board {
     min-height: 0;
@@ -798,17 +868,78 @@ legend { font-weight: 900; padding: 0 8px; }
   .journey-main,
   .traffic-panel {
     min-height: 0;
-    padding: 14px;
-    gap: 12px;
+    padding: 12px;
+    gap: 10px;
   }
   .journey-lane {
-    padding: 13px 14px;
+    padding: 10px 12px;
+    min-height: 0;
   }
   .lane-body {
-    margin-top: 9px;
+    margin-top: 7px;
+    grid-template-columns: 84px minmax(170px, 1fr) 120px;
+    gap: 12px;
+  }
+  .lane-body.with-previous {
+    grid-template-columns: 98px 84px minmax(150px, 1fr) 120px;
+    gap: 10px;
+  }
+  .lane-time {
+    min-height: 58px;
+  }
+  .lane-time strong {
+    font-size: 23px;
+  }
+  .lane-track {
+    min-height: 58px;
   }
   .lane-message {
-    margin-top: 8px;
+    margin-top: 6px;
+    font-size: 14px;
+    line-height: 1.25;
+  }
+  .bus-eta-stack {
+    gap: 7px;
+    margin-top: 7px;
+  }
+  .bus-eta-card {
+    padding: 7px 8px;
+    gap: 7px;
+  }
+  .bus-eta-index {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+  .bus-eta-main strong,
+  .bus-eta-destination strong {
+    font-size: 14px;
+  }
+  .bus-eta-main span,
+  .bus-eta-destination span {
+    font-size: 10px;
+  }
+  .car-compare {
+    gap: 8px;
+  }
+  .car-route-grid {
+    gap: 8px;
+  }
+  .car-route-row {
+    padding: 8px 10px;
+  }
+  .car-route-row.with-speed-track {
+    grid-template-columns: minmax(112px, .6fr) minmax(200px, 1.5fr) 86px 72px;
+  }
+  .car-route-row b {
+    font-size: 23px;
+  }
+  .car-speed-track {
+    min-height: 24px;
+  }
+  .car-speed-summary,
+  .car-speed-empty {
+    font-size: 11px;
   }
   .traffic-feed {
     min-height: 108px;
@@ -837,14 +968,24 @@ legend { font-weight: 900; padding: 0 8px; }
     font-size: 17px;
   }
   .featured-traffic-camera img {
-    max-height: 220px;
+    max-height: 204px;
+  }
+  .featured-traffic-camera figcaption {
+    padding: 8px 10px;
   }
   .board {
-    padding: 14px 18px;
+    padding: 10px 16px;
     overflow: hidden;
   }
+  .section-heading {
+    margin-bottom: 4px;
+  }
   .section-heading h2 {
-    font-size: 22px;
+    font-size: 20px;
+  }
+  .eta-table {
+    gap: 8px 12px;
+    font-size: 13px;
   }
 }
 
@@ -855,6 +996,7 @@ legend { font-weight: 900; padding: 0 8px; }
   .lane-head, .lane-body { grid-template-columns: 1fr; }
   .lane-body.with-previous { grid-template-columns: 1fr; }
   .lane-head { align-items: start; }
+  .bus-eta-stack { grid-template-columns: 1fr; }
   .car-route-row { grid-template-columns: 1fr; }
   .car-route-row.with-speed-track { grid-template-columns: 1fr; }
   .eta-table { grid-template-columns: 1fr; }
