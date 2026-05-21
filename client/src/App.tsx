@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bug, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Bug, Maximize2, Minimize2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { CommuteProfile, DashboardPayload, ProfileInput } from "../../shared/types";
 import { api } from "./lib/api";
 import { Dashboard } from "./components/Dashboard";
@@ -12,6 +12,10 @@ export function App() {
   const [dashboard, setDashboard] = useState<DashboardPayload | null>(null);
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [debugOpen, setDebugOpen] = useState(false);
+  const [displayMode, setDisplayMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("display") === "1" || window.localStorage.getItem("home-console-display-mode") === "true";
+  });
   const [error, setError] = useState("");
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedId), [profiles, selectedId]);
 
@@ -61,8 +65,12 @@ export function App() {
     return () => window.clearInterval(fast);
   }, [selectedId, debugOpen]);
 
+  useEffect(() => {
+    window.localStorage.setItem("home-console-display-mode", String(displayMode));
+  }, [displayMode]);
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${displayMode && !formMode && !debugOpen ? "display-mode" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
           <span>HK</span>
@@ -82,6 +90,10 @@ export function App() {
         </div>
 
         <div className="sidebar-actions">
+          <button onClick={() => setDisplayMode((current) => !current)}>
+            {displayMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            {displayMode ? "Show controls" : "Display mode"}
+          </button>
           <button onClick={() => { setFormMode("create"); setDebugOpen(false); }}><Plus size={18} /> Add profile</button>
           <button onClick={() => { setFormMode("edit"); setDebugOpen(false); }} disabled={!selectedProfile}>Edit profile</button>
           <button onClick={() => loadDashboard()} disabled={!selectedId || debugOpen}><RefreshCw size={18} /> Refresh</button>
@@ -89,6 +101,12 @@ export function App() {
           <button onClick={deleteSelected} disabled={!selectedId}><Trash2 size={18} /> Delete</button>
         </div>
       </aside>
+
+      {displayMode && !formMode && !debugOpen && (
+        <button className="display-mode-exit" onClick={() => setDisplayMode(false)}>
+          <Minimize2 size={18} /> Controls
+        </button>
+      )}
 
       <div className={`content ${formMode || debugOpen ? "content-scroll" : ""}`}>
         {error && <div className="notice">{error}</div>}

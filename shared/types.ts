@@ -71,6 +71,17 @@ export interface CarConfig {
   destination: Coordinate;
 }
 
+export interface ModeWalkTimeConfig {
+  toStartMinutes?: number;
+  fromDestinationMinutes?: number;
+}
+
+export interface WalkTimeConfig {
+  bus?: ModeWalkTimeConfig;
+  mtr?: ModeWalkTimeConfig;
+  car?: ModeWalkTimeConfig;
+}
+
 export interface TrafficSpeedNode {
   roadName: string;
   averageSpeedKph?: number;
@@ -119,6 +130,7 @@ export interface CommuteProfile {
   bus?: BusLegConfig;
   mtr?: MtrSegmentConfig;
   car?: CarConfig;
+  walkTimes?: WalkTimeConfig;
   tunnelIndicatorId?: string;
   createdAt: string;
   updatedAt: string;
@@ -206,6 +218,7 @@ export interface ProfileInput {
   bus?: BusLegConfig;
   mtr?: MtrSegmentConfig;
   car?: CarConfig;
+  walkTimes?: WalkTimeConfig;
   tunnelIndicatorId?: string;
 }
 

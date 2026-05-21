@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { AlertTriangle, Bus, Clock, CloudRain, Droplets, Car as CarIcon, Gauge, Thermometer, TrainFront, Waves } from "lucide-react";
-import { CarRouteEstimate, DashboardPayload, EtaItem, PairedBusEta, TrafficCamera, TrafficSpeedNode } from "../../../shared/types";
+import { CarRouteEstimate, DashboardPayload, EtaItem, ModeWalkTimeConfig, PairedBusEta, TrafficCamera, TrafficSpeedNode } from "../../../shared/types";
 import { cameraImageUrl, useCameraRefreshToken, useRotatingIndex } from "../lib/camera";
 import { formatClock, formatMinutes, formatSpeedKph, formatUpdated } from "../lib/format";
 
@@ -23,6 +23,56 @@ function confidenceLabel(confidence?: string): string {
   if (confidence === "operator_order") return "same operator/order estimate";
   if (confidence === "approximate") return "approximate estimate";
   return "unavailable";
+}
+
+function addMinutes(iso: string | undefined, minutes = 0): string | undefined {
+  if (!iso) return undefined;
+  return new Date(new Date(iso).getTime() + minutes * 60000).toISOString();
+}
+
+function subtractMinutes(iso: string | undefined, minutes = 0): string | undefined {
+  if (!iso) return undefined;
+  return new Date(new Date(iso).getTime() - minutes * 60000).toISOString();
+}
+
+function latestArrivalIso(latestArrivalTime: string, generatedAt: string): string {
+  const now = new Date(generatedAt);
+  const hongKongNow = new Date(now.getTime() + 8 * 60 * 60000);
+  const [hour, minute] = latestArrivalTime.split(":").map(Number);
+  const year = hongKongNow.getUTCFullYear();
+  const month = String(hongKongNow.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(hongKongNow.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+08:00`;
+}
+
+function bufferMinutes(finalArrivalIso: string | undefined, latestArrivalTime: string, generatedAt: string): number | undefined {
+  if (!finalArrivalIso) return undefined;
+  return Math.floor((new Date(latestArrivalIso(latestArrivalTime, generatedAt)).getTime() - new Date(finalArrivalIso).getTime()) / 60000);
+}
+
+function timeUntil(iso: string | undefined, generatedAt: string): number | undefined {
+  if (!iso) return undefined;
+  return Math.floor((new Date(iso).getTime() - new Date(generatedAt).getTime()) / 60000);
+}
+
+function formatSignedMinutes(minutes: number | undefined): string {
+  if (typeof minutes !== "number") return "--";
+  if (minutes > 0) return `+${minutes} min`;
+  if (minutes === 0) return "0 min";
+  return `${minutes} min`;
+}
+
+function leaveByLabel(leaveByIso: string | undefined, generatedAt: string): string {
+  const minutes = timeUntil(leaveByIso, generatedAt);
+  if (typeof minutes !== "number") return "Leave by --";
+  if (minutes <= 0) return "Leave now";
+  return `Leave by ${formatClock(leaveByIso)}`;
+}
+
+function walkSummary(walk?: ModeWalkTimeConfig): string {
+  const toStart = walk?.toStartMinutes || 0;
+  const fromDestination = walk?.fromDestinationMinutes || 0;
+  return `${toStart}m to start · ${fromDestination}m after`;
 }
 
 function findPreviousEta(origin: EtaItem | undefined, previousEtas: EtaItem[]): EtaItem | undefined {
@@ -127,6 +177,29 @@ function BusEtaStack({ pairs }: { pairs: PairedBusEta[] }) {
   );
 }
 
+function ModeTimingHint({
+  leaveBy,
+  finalArrival,
+  buffer,
+  walk,
+  generatedAt
+}: {
+  leaveBy?: string;
+  finalArrival?: string;
+  buffer?: number;
+  walk?: ModeWalkTimeConfig;
+  generatedAt: string;
+}) {
+  return (
+    <div className="mode-timing-hint">
+      <span>{leaveByLabel(leaveBy, generatedAt)}</span>
+      <span>Door arrival {formatClock(finalArrival)}</span>
+      <strong className={(buffer ?? 0) < 0 ? "late" : "on_time"}>{formatSignedMinutes(buffer)} buffer</strong>
+      <small>{walkSummary(walk)}</small>
+    </div>
+  );
+}
+
 function WeatherPane({ data }: { data: DashboardPayload }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const hours = data.weather.hours;
@@ -187,11 +260,13 @@ function CarLane({ data }: { data: DashboardPayload }) {
           route={fastest}
           fallbackMinutes={data.car.travelMinutes}
           fallbackArrival={data.car.arrivalTime}
+          profile={data}
         />
         <CarRouteRow
           title={tollFree?.usesToll ? "Less toll" : "Toll-free"}
           subtitle={tollFree ? delta : "Not available"}
           route={tollFree}
+          profile={data}
         />
       </div>
       {data.car.status.message && <p className="muted lane-message">{data.car.status.message}</p>}
@@ -236,23 +311,35 @@ function CarRouteRow({
   subtitle,
   route,
   fallbackMinutes,
-  fallbackArrival
+  fallbackArrival,
+  profile
 }: {
   title: string;
   subtitle: string;
   route?: CarRouteEstimate;
   fallbackMinutes?: number;
   fallbackArrival?: string;
+  profile: DashboardPayload;
 }) {
+  const walk = profile.profile.walkTimes?.car;
+  const arrival = route?.arrivalTime || fallbackArrival;
+  const finalArrival = addMinutes(arrival, walk?.fromDestinationMinutes || 0);
+  const travelMinutes = route?.travelMinutes || fallbackMinutes;
+  const leaveBy = typeof travelMinutes === "number"
+    ? subtractMinutes(latestArrivalIso(profile.profile.latestArrivalTime, profile.generatedAt), travelMinutes + (walk?.toStartMinutes || 0) + (walk?.fromDestinationMinutes || 0))
+    : undefined;
+  const buffer = bufferMinutes(finalArrival, profile.profile.latestArrivalTime, profile.generatedAt);
+
   return (
     <div className="car-route-row with-speed-track">
       <div className="car-route-meta">
         <strong>{title}</strong>
         <span>{subtitle}</span>
+        <small>{leaveByLabel(leaveBy, profile.generatedAt)} · {formatSignedMinutes(buffer)} buffer</small>
       </div>
       <CarSpeedTrack nodes={route?.speedNodes} />
-      <b>{formatMinutes(route?.travelMinutes || fallbackMinutes)}</b>
-      <span>{formatClock(route?.arrivalTime || fallbackArrival)}</span>
+      <b>{formatMinutes(travelMinutes)}</b>
+      <span>{formatClock(finalArrival)}</span>
     </div>
   );
 }
@@ -327,6 +414,17 @@ export function Dashboard({ data }: Props) {
     typeof firstBus?.destination?.minutes === "number" && typeof firstBus?.origin?.minutes === "number"
       ? Math.max(0, firstBus.destination.minutes - firstBus.origin.minutes)
       : undefined;
+  const busWalk = data.profile.walkTimes?.bus;
+  const mtrWalk = data.profile.walkTimes?.mtr;
+  const busFinalArrival = addMinutes(firstBus?.projectedArrival, busWalk?.fromDestinationMinutes || 0);
+  const busLeaveBy = subtractMinutes(firstBus?.origin?.eta, busWalk?.toStartMinutes || 0);
+  const busBuffer = bufferMinutes(busFinalArrival, data.profile.latestArrivalTime, data.generatedAt);
+  const mtrFinalArrival = addMinutes(data.mtr.arrivalTime, mtrWalk?.fromDestinationMinutes || 0);
+  const mtrStartTrainIso = typeof data.mtr.nextTrainMinutes === "number"
+    ? addMinutes(data.generatedAt, data.mtr.nextTrainMinutes)
+    : undefined;
+  const mtrLeaveBy = subtractMinutes(mtrStartTrainIso, mtrWalk?.toStartMinutes || 0);
+  const mtrBuffer = bufferMinutes(mtrFinalArrival, data.profile.latestArrivalTime, data.generatedAt);
 
   return (
     <main className="dashboard">
@@ -359,7 +457,12 @@ export function Dashboard({ data }: Props) {
             endLabel={`ride · arrive ${formatClock(firstBus?.projectedArrival)}`}
             markers={12}
             message={`${data.profile.bus?.originStopName || "Origin stop"} to ${data.profile.bus?.destinationStopName || "destination stop"} · ${confidenceLabel(firstBus?.confidence)}`}
-            extra={<BusEtaStack pairs={data.bus.pairs} />}
+            extra={
+              <>
+                <ModeTimingHint leaveBy={busLeaveBy} finalArrival={busFinalArrival} buffer={busBuffer} walk={busWalk} generatedAt={data.generatedAt} />
+                <BusEtaStack pairs={data.bus.pairs} />
+              </>
+            }
           />
           <JourneyLane
             icon={<TrainFront />}
@@ -370,6 +473,7 @@ export function Dashboard({ data }: Props) {
             endLabel={`ride · arrive ${formatClock(data.mtr.arrivalTime)}`}
             markers={8}
             message="Next train plus configured average ride/interchange time, excluding walking"
+            extra={<ModeTimingHint leaveBy={mtrLeaveBy} finalArrival={mtrFinalArrival} buffer={mtrBuffer} walk={mtrWalk} generatedAt={data.generatedAt} />}
           />
           <CarLane data={data} />
         </div>

@@ -19,13 +19,19 @@ function parseJson<T>(value: string | null): T | undefined {
 }
 
 function toProfile(row: ProfileRow): CommuteProfile {
+  const bus = parseJson<CommuteProfile["bus"]>(row.bus_json);
+  const mtr = parseJson<CommuteProfile["mtr"]>(row.mtr_json);
+  const carRow = parseJson<CommuteProfile["car"] & { walkTimes?: CommuteProfile["walkTimes"] }>(row.car_json);
+  const walkTimes = carRow?.walkTimes;
+  const car = carRow ? { origin: carRow.origin, destination: carRow.destination } : undefined;
   return {
     id: row.id,
     name: row.name,
     latestArrivalTime: row.latest_arrival_time,
-    bus: parseJson(row.bus_json),
-    mtr: parseJson(row.mtr_json),
-    car: parseJson(row.car_json),
+    bus,
+    mtr,
+    car,
+    walkTimes,
     tunnelIndicatorId: row.tunnel_indicator_id || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -46,12 +52,13 @@ function createId(): string {
 }
 
 function profileColumns(input: ProfileInput): Array<string | null> {
+  const carWithWalkTimes = input.car ? { ...input.car, walkTimes: input.walkTimes } : null;
   return [
     input.name.trim(),
     input.latestArrivalTime,
     input.bus ? JSON.stringify(input.bus) : null,
     input.mtr ? JSON.stringify(input.mtr) : null,
-    input.car ? JSON.stringify(input.car) : null,
+    carWithWalkTimes ? JSON.stringify(carWithWalkTimes) : null,
     input.tunnelIndicatorId || null
   ];
 }

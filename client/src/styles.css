@@ -14,6 +14,27 @@ button { cursor: pointer; }
   grid-template-columns: 300px 1fr;
   min-height: 100vh;
 }
+.app-shell.display-mode {
+  grid-template-columns: 1fr;
+}
+.app-shell.display-mode .sidebar {
+  display: none;
+}
+.display-mode-exit {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgba(16, 40, 38, .86);
+  color: white;
+  font-weight: 800;
+}
 
 .sidebar {
   background: #102826;
@@ -292,6 +313,36 @@ button { cursor: pointer; }
 .bus-eta-destination {
   text-align: right;
 }
+.mode-timing-hint {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+.mode-timing-hint span,
+.mode-timing-hint strong,
+.mode-timing-hint small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid #dfe6df;
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: white;
+  font-size: 12px;
+}
+.mode-timing-hint strong {
+  color: #2f7d43;
+}
+.mode-timing-hint strong.late {
+  color: #a23d2d;
+  background: #fff8f5;
+}
+.mode-timing-hint small {
+  color: #60706b;
+}
 .car-compare {
   display: grid;
   gap: 12px;
@@ -315,9 +366,15 @@ button { cursor: pointer; }
   display: block;
 }
 .car-route-row div span,
-.car-route-row > span {
+.car-route-row > span,
+.car-route-meta small {
   color: #60706b;
   font-size: 13px;
+}
+.car-route-meta small {
+  display: block;
+  margin-top: 4px;
+  white-space: nowrap;
 }
 .car-route-row b {
   font-size: 28px;
@@ -592,6 +649,19 @@ button { cursor: pointer; }
   padding: 11px 12px;
   background: #fbfcfb;
 }
+.walk-time-grid {
+  display: grid;
+  gap: 10px;
+}
+.walk-time-row {
+  display: grid;
+  grid-template-columns: 110px repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.walk-time-row strong {
+  padding-bottom: 12px;
+}
 fieldset { border: 1px solid #dfe6df; border-radius: 8px; padding: 14px; }
 legend { font-weight: 900; padding: 0 8px; }
 .grid-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -817,6 +887,16 @@ legend { font-weight: 900; padding: 0 8px; }
     height: 100vh;
     overflow: hidden;
   }
+  .app-shell.display-mode {
+    grid-template-columns: 1fr;
+  }
+  .app-shell.display-mode .content {
+    padding: 18px;
+  }
+  .app-shell.display-mode .dashboard {
+    grid-template-rows: 132px 118px minmax(0, 1fr) 68px;
+    gap: 10px;
+  }
   .sidebar {
     padding: 22px;
   }
@@ -919,6 +999,16 @@ legend { font-weight: 900; padding: 0 8px; }
   .bus-eta-destination span {
     font-size: 10px;
   }
+  .mode-timing-hint {
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .mode-timing-hint span,
+  .mode-timing-hint strong,
+  .mode-timing-hint small {
+    padding: 5px 7px;
+    font-size: 11px;
+  }
   .car-compare {
     gap: 8px;
   }
@@ -997,7 +1087,9 @@ legend { font-weight: 900; padding: 0 8px; }
   .lane-body.with-previous { grid-template-columns: 1fr; }
   .lane-head { align-items: start; }
   .bus-eta-stack { grid-template-columns: 1fr; }
+  .mode-timing-hint { grid-template-columns: 1fr; }
   .car-route-row { grid-template-columns: 1fr; }
   .car-route-row.with-speed-track { grid-template-columns: 1fr; }
   .eta-table { grid-template-columns: 1fr; }
+  .walk-time-row { grid-template-columns: 1fr; }
 }

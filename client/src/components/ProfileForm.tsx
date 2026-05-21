@@ -27,6 +27,11 @@ const emptyInput: ProfileInput = {
     origin: { lat: 22.3027, lng: 114.1772 },
     destination: { lat: 22.2819, lng: 114.1589 }
   },
+  walkTimes: {
+    bus: { toStartMinutes: 5, fromDestinationMinutes: 5 },
+    mtr: { toStartMinutes: 8, fromDestinationMinutes: 8 },
+    car: { toStartMinutes: 2, fromDestinationMinutes: 3 }
+  },
   tunnelIndicatorId: ""
 };
 
@@ -50,6 +55,17 @@ export function ProfileForm({ profile, onSave }: Props) {
 
   function update<K extends keyof ProfileInput>(key: K, value: ProfileInput[K]) {
     setInput((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateWalkTime(mode: "bus" | "mtr" | "car", key: "toStartMinutes" | "fromDestinationMinutes", value: string) {
+    const minutes = Math.max(0, Number(value) || 0);
+    update("walkTimes", {
+      ...input.walkTimes,
+      [mode]: {
+        ...input.walkTimes?.[mode],
+        [key]: minutes
+      }
+    });
   }
 
   useEffect(() => {
@@ -235,6 +251,35 @@ export function ProfileForm({ profile, onSave }: Props) {
         Latest arrival
         <input type="time" value={input.latestArrivalTime} onChange={(event) => update("latestArrivalTime", event.target.value)} />
       </label>
+
+      <fieldset>
+        <legend>Access and buffer walk times</legend>
+        <div className="walk-time-grid">
+          {(["bus", "mtr", "car"] as const).map((mode) => (
+            <div key={mode} className="walk-time-row">
+              <strong>{mode === "mtr" ? "MTR" : mode === "bus" ? "Bus" : "Car"}</strong>
+              <label>
+                To start
+                <input
+                  type="number"
+                  min="0"
+                  value={input.walkTimes?.[mode]?.toStartMinutes ?? 0}
+                  onChange={(event) => updateWalkTime(mode, "toStartMinutes", event.target.value)}
+                />
+              </label>
+              <label>
+                From destination
+                <input
+                  type="number"
+                  min="0"
+                  value={input.walkTimes?.[mode]?.fromDestinationMinutes ?? 0}
+                  onChange={(event) => updateWalkTime(mode, "fromDestinationMinutes", event.target.value)}
+                />
+              </label>
+            </div>
+          ))}
+        </div>
+      </fieldset>
 
       <fieldset>
         <legend>Bus</legend>
