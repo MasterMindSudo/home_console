@@ -100,6 +100,37 @@ export async function replaceGtfsPatterns(sourceUrl: string, routes: StoredGtfsR
   transaction();
 }
 
+export async function upsertGtfsRoutePattern(sourceUrl: string, route: StoredGtfsRoutePattern, status = "ok"): Promise<void> {
+  const importedAt = new Date().toISOString();
+  const routeShortName = route.routeShortName.trim().toUpperCase();
+
+  if (usePostgres && pgPool) {
+    await pgPool.query(
+      `INSERT INTO gtfs_route_patterns (
+        route_short_name, agency_id, route_long_name, patterns_json, imported_at
+      ) VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (route_short_name) DO UPDATE SET
+        agency_id = EXCLUDED.agency_id,
+        route_long_name = EXCLUDED.route_long_name,
+        patterns_json = EXCLUDED.patterns_json,
+        imported_at = EXCLUDED.imported_at`,
+      [routeShortName, route.agencyId || null, route.routeLongName || null, JSON.stringify(route.patterns), importedAt]
+    );
+    await pgPool.query(
+      "INSERT INTO gtfs_imports (id, source_url, imported_at, status) VALUES ($1, $2, $3, $4)",
+      [`gtfs-${routeShortName}-${Date.now()}`, sourceUrl, importedAt, status]
+    );
+    return;
+  }
+
+  db!.prepare(`
+    INSERT OR REPLACE INTO gtfs_route_patterns (
+      route_short_name, agency_id, route_long_name, patterns_json, imported_at
+    ) VALUES (?, ?, ?, ?, ?)
+  `).run(routeShortName, route.agencyId || null, route.routeLongName || null, JSON.stringify(route.patterns), importedAt);
+  db!.prepare("INSERT INTO gtfs_imports (id, source_url, imported_at, status) VALUES (?, ?, ?, ?)").run(`gtfs-${routeShortName}-${Date.now()}`, sourceUrl, importedAt, status);
+}
+
 export async function getGtfsRoutePattern(routeShortName: string): Promise<StoredGtfsRoutePattern | undefined> {
   const route = routeShortName.trim().toUpperCase();
   const row = usePostgres && pgPool

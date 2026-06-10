@@ -2,17 +2,18 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { execFileSync } from "child_process";
+import readline from "readline";
 import fetch from "node-fetch";
 import { BusLegConfig } from "../../../shared/types";
 import { config } from "../config";
-import { getGtfsRoutePattern, GtfsRoutePattern, latestGtfsImport, replaceGtfsPatterns, StoredGtfsRoutePattern } from "../db/gtfs";
-import { parseCsv } from "./csv";
+import { getGtfsRoutePattern, GtfsRoutePattern, StoredGtfsRoutePattern, upsertGtfsRoutePattern } from "../db/gtfs";
+import { parseCsv, parseCsvLine } from "./csv";
 
 const REFRESH_DAYS = 14;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const FAILURE_BACKOFF_MS = 60 * 60 * 1000;
 const CACHE_STATUS = "ok:v2";
-let refreshPromise: Promise<void> | undefined;
+const refreshPromises = new Map<string, Promise<void>>();
 let lastRefreshFailureAt = 0;
 
 export interface BusPairingProfile {
@@ -127,41 +128,61 @@ function median(values: number[]): number | undefined {
   return sorted[Math.floor(sorted.length / 2)];
 }
 
-function buildRoutePatterns(dir: string): StoredGtfsRoutePattern[] {
+async function readTargetStopTimes(dir: string, tripIds: Set<string>): Promise<Map<string, StopTimeRow[]>> {
+  const stopTimesByTrip = new Map<string, StopTimeRow[]>();
+  const stream = fs.createReadStream(path.join(dir, "stop_times.txt"), { encoding: "utf8" });
+  const reader = readline.createInterface({ input: stream, crlfDelay: Infinity });
+  let headerIndex: Record<string, number> | undefined;
+
+  for await (const line of reader) {
+    if (!headerIndex) {
+      const headers = parseCsvLine(line.replace(/^\uFEFF/, ""));
+      headerIndex = Object.fromEntries(headers.map((header, index) => [header, index]));
+      continue;
+    }
+    if (!line) continue;
+    const values = parseCsvLine(line);
+    const tripId = values[headerIndex.trip_id];
+    if (!tripIds.has(tripId)) continue;
+    const current = stopTimesByTrip.get(tripId) || [];
+    current.push({
+      trip_id: tripId,
+      arrival_time: values[headerIndex.arrival_time] || "",
+      departure_time: values[headerIndex.departure_time] || "",
+      stop_id: values[headerIndex.stop_id] || "",
+      stop_sequence: values[headerIndex.stop_sequence] || ""
+    });
+    stopTimesByTrip.set(tripId, current);
+  }
+
+  return stopTimesByTrip;
+}
+
+async function buildRoutePattern(dir: string, targetRouteShortName: string): Promise<StoredGtfsRoutePattern | undefined> {
   const routes = readGtfsCsv<RouteRow>(dir, "routes.txt");
   const trips = readGtfsCsv<TripRow>(dir, "trips.txt");
   const stops = readGtfsCsv<StopRow>(dir, "stops.txt");
   const frequencies = readGtfsCsv<FrequencyRow>(dir, "frequencies.txt");
-  const stopTimes = readGtfsCsv<StopTimeRow>(dir, "stop_times.txt");
+  const routeShortName = targetRouteShortName.trim().toUpperCase();
+  const matchingRoutes = routes.filter((route) => route.route_short_name.trim().toUpperCase() === routeShortName);
+  if (!matchingRoutes.length) return undefined;
 
   const stopNameById = new Map(stops.map((stop) => [stop.stop_id, stop.stop_name]));
-  const tripsByRoute = new Map<string, TripRow[]>();
-  trips.forEach((trip) => {
-    const current = tripsByRoute.get(trip.route_id) || [];
-    current.push(trip);
-    tripsByRoute.set(trip.route_id, current);
-  });
+  const matchingRouteIds = new Set(matchingRoutes.map((route) => route.route_id));
+  const targetTrips = trips.filter((trip) => matchingRouteIds.has(trip.route_id));
+  const targetTripIds = new Set(targetTrips.map((trip) => trip.trip_id));
 
   const frequenciesByTrip = new Map<string, FrequencyRow[]>();
   frequencies.forEach((frequency) => {
+    if (!targetTripIds.has(frequency.trip_id)) return;
     const current = frequenciesByTrip.get(frequency.trip_id) || [];
     current.push(frequency);
     frequenciesByTrip.set(frequency.trip_id, current);
   });
 
-  const stopTimesByTrip = new Map<string, StopTimeRow[]>();
-  stopTimes.forEach((stopTime) => {
-    const current = stopTimesByTrip.get(stopTime.trip_id) || [];
-    current.push(stopTime);
-    stopTimesByTrip.set(stopTime.trip_id, current);
-  });
-
-  const groupedRoutes = new Map<string, StoredGtfsRoutePattern>();
-  routes
-    .filter((route) => route.route_short_name)
-    .forEach((route) => {
-      const patterns = new Map<string, GtfsRoutePattern & { runtimes: number[] }>();
-      (tripsByRoute.get(route.route_id) || []).forEach((trip) => {
+  const stopTimesByTrip = await readTargetStopTimes(dir, targetTripIds);
+  const patterns = new Map<string, GtfsRoutePattern & { runtimes: number[] }>();
+  targetTrips.forEach((trip) => {
         const orderedStops = (stopTimesByTrip.get(trip.trip_id) || [])
           .slice()
           .sort((a, b) => Number(a.stop_sequence) - Number(b.stop_sequence));
@@ -202,34 +223,17 @@ function buildRoutePatterns(dir: string): StoredGtfsRoutePattern[] {
         patterns.set(key, existing);
       });
 
-      const routeShortName = route.route_short_name.trim().toUpperCase();
-      const built = {
-        routeShortName,
-        agencyId: route.agency_id,
-        routeLongName: route.route_long_name,
-        patterns: Array.from(patterns.values()).map(({ runtimes, ...pattern }) => ({
-          ...pattern,
-          runtimeMinutes: median(runtimes)
-        })),
-        importedAt: new Date().toISOString()
-      };
-      if (!built.patterns.length) return;
-
-      const existing = groupedRoutes.get(routeShortName);
-      if (!existing) {
-        groupedRoutes.set(routeShortName, built);
-        return;
-      }
-      const existingPatternKeys = new Set(existing.patterns.map((pattern) => pattern.patternKey));
-      built.patterns.forEach((pattern) => {
-        if (!existingPatternKeys.has(pattern.patternKey)) existing.patterns.push(pattern);
-      });
-      if (!existing.agencyId?.includes(route.agency_id)) {
-        existing.agencyId = [existing.agencyId, route.agency_id].filter(Boolean).join("+");
-      }
-    });
-
-  return Array.from(groupedRoutes.values());
+  if (!patterns.size) return undefined;
+  return {
+    routeShortName,
+    agencyId: Array.from(new Set(matchingRoutes.map((route) => route.agency_id).filter(Boolean))).join("+"),
+    routeLongName: matchingRoutes[0]?.route_long_name,
+    patterns: Array.from(patterns.values()).map(({ runtimes, ...pattern }) => ({
+      ...pattern,
+      runtimeMinutes: median(runtimes)
+    })),
+    importedAt: new Date().toISOString()
+  };
 }
 
 function removeDirectory(dir: string): void {
@@ -241,32 +245,35 @@ function removeDirectory(dir: string): void {
   fs.rmdirSync(dir, { recursive: true });
 }
 
-async function refreshGtfsIfNeeded(): Promise<void> {
-  const latest = await latestGtfsImport();
-  if (isImportFresh(latest?.importedAt, latest?.status)) return;
+async function refreshGtfsRouteIfNeeded(routeShortName: string, existing?: StoredGtfsRoutePattern): Promise<void> {
+  const route = routeShortName.trim().toUpperCase();
+  if (isImportFresh(existing?.importedAt, CACHE_STATUS)) return;
   if (lastRefreshFailureAt && Date.now() - lastRefreshFailureAt < FAILURE_BACKOFF_MS) return;
-  if (refreshPromise) {
-    await refreshPromise;
+  const currentRefresh = refreshPromises.get(route);
+  if (currentRefresh) {
+    await currentRefresh;
     return;
   }
 
-  refreshPromise = (async () => {
+  const refreshPromise = (async () => {
     const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "home-console-gtfs-"));
     const zipPath = path.join(workDir, "gtfs.zip");
     const extractDir = path.join(workDir, "feed");
     try {
       await downloadGtfsZip(zipPath);
       extractZip(zipPath, extractDir);
-      await replaceGtfsPatterns(config.gtfsHeadwayUrl, buildRoutePatterns(extractDir), CACHE_STATUS);
+      const pattern = await buildRoutePattern(extractDir, route);
+      if (pattern) await upsertGtfsRoutePattern(config.gtfsHeadwayUrl, pattern, CACHE_STATUS);
       lastRefreshFailureAt = 0;
     } catch (error) {
       lastRefreshFailureAt = Date.now();
       console.warn("GTFS headway refresh failed:", error instanceof Error ? error.message : error);
     } finally {
       removeDirectory(workDir);
-      refreshPromise = undefined;
+      refreshPromises.delete(route);
     }
   })();
+  refreshPromises.set(route, refreshPromise);
 
   await refreshPromise;
 }
@@ -311,8 +318,9 @@ function pairingProfileFromPattern(pattern: GtfsRoutePattern, config: BusLegConf
 export async function getBusPairingProfile(config?: BusLegConfig): Promise<BusPairingProfile | undefined> {
   if (!config?.route || !config.originStopName || !config.destinationStopName) return undefined;
   try {
-    await refreshGtfsIfNeeded();
-    const route = await getGtfsRoutePattern(config.route);
+    let route = await getGtfsRoutePattern(config.route);
+    await refreshGtfsRouteIfNeeded(config.route, route);
+    route = await getGtfsRoutePattern(config.route);
     if (!route) return undefined;
 
     const candidates = route.patterns
