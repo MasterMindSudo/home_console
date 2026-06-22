@@ -33,6 +33,14 @@ Open the client at `http://localhost:5173`.
 - Optional `DATABASE_SSL`:
   - `require` / `true` enables SSL with `rejectUnauthorized: false` (typical for Render external hostnames).
   - `disable` / `false` turns SSL off (typical for trusted internal/private networks).
+- Supabase server integration reads `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, and `SUPABASE_JWKS_URL`.
+- `GET /api/supabase/status` checks Supabase server config wiring.
+- `GET /api/supabase/me` uses Supabase `auth: "user"` and returns verified JWT claims.
+- When `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are set, `/api/profiles` reads and writes the `profiles` table through Supabase/PostgREST instead of the legacy SQLite/Postgres profile store.
+- The matching table definition is in `supabase/profiles.sql`.
+- Local SQLite remains in use for non-profile caches such as GTFS unless you explicitly migrate those too.
+- Create the table once in the Supabase SQL Editor using `supabase/profiles.sql`, then run `npm run migrate:profiles:supabase` to upsert existing SQLite profiles by ID.
+- When Supabase is configured, a legacy `DATABASE_URL` is ignored so a retired Postgres host cannot prevent the app from starting.
 - Bus setup starts from route number, then loads directions and stop-name choices. The app hides official stop IDs in the UI but stores them internally because the ETA APIs require them.
 - Co-operated routes can merge operators such as KMB + Citybus and keep each operator's own direction/stop IDs behind one visible route direction.
 - MTR setup uses start and destination stations; the app resolves the first train line/direction and indicative route automatically.
@@ -65,4 +73,4 @@ npm ci && npm run build
 npm run start
 ```
 
-Set `NODE_VERSION=18.20.4` if Render does not pick up `.node-version`.
+Set `NODE_VERSION=20.19.0` if Render does not pick up `.node-version`.

@@ -9,6 +9,7 @@ import { dashboardRoutes } from "./routes/dashboard";
 import { busRoutes } from "./routes/bus";
 import { mtrRoutes } from "./routes/mtr";
 import { debugRoutes } from "./routes/debug";
+import { supabaseRoutes } from "./routes/supabase";
 
 const mimeTypes: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
   await app.register(busRoutes);
   await app.register(mtrRoutes);
   await app.register(debugRoutes);
+  await app.register(supabaseRoutes);
 
   app.get("/api/health", async () => ({ ok: true, now: new Date().toISOString() }));
 

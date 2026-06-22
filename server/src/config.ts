@@ -8,6 +8,10 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL || "",
   databasePath: path.resolve(process.env.DATABASE_PATH || "./data/dashboard.sqlite"),
   databaseSsl: process.env.DATABASE_SSL || "",
+  supabaseUrl: process.env.SUPABASE_URL || "",
+  supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY || "",
+  supabaseSecretKey: process.env.SUPABASE_SECRET_KEY || "",
+  supabaseJwksUrl: process.env.SUPABASE_JWKS_URL || "",
   gtfsHeadwayUrl: process.env.GTFS_HEADWAY_URL || "https://static.data.gov.hk/td/pt-headway-en/gtfs.zip",
   tomtomApiKey: process.env.TOMTOM_API_KEY || "",
   tomtomBackupApiKey: process.env.TOMTOM_BACKUP_API_KEY

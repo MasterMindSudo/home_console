@@ -3,8 +3,14 @@ import path from "path";
 import Database from "better-sqlite3";
 import { Pool } from "pg";
 import { config } from "../config";
+import { resolveLegacyDatabaseMode } from "./databaseMode";
 
-export const usePostgres = Boolean(config.databaseUrl);
+const legacyDatabaseMode = resolveLegacyDatabaseMode({
+  databaseUrl: config.databaseUrl,
+  supabaseConfigured: Boolean(config.supabaseUrl && config.supabaseSecretKey)
+});
+
+export const usePostgres = legacyDatabaseMode === "postgres";
 const DB_SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS profiles (
     id TEXT PRIMARY KEY,
