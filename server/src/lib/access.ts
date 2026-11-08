@@ -10,8 +10,8 @@ export interface AccessConfig {
 export function registerAccessControl(app: FastifyInstance, options: AccessConfig): void {
   const { username, password, required } = options;
   if (!username && !password && !required) return;
-  if (!username || username.includes(":") || !/^[\x21-\x7e]+$/.test(username) || password.length < 24) {
-    throw new Error("Set APP_AUTH_USER (ASCII, no colon) and APP_AUTH_PASSWORD (at least 24 characters).");
+  if (!username || username.includes(":") || !/^[\x21-\x7e]+$/.test(username) || password.length < 14) {
+    throw new Error("Set APP_AUTH_USER (ASCII, no colon) and APP_AUTH_PASSWORD (at least 14 characters).");
   }
 
   const expected = createHash("sha256").update(`${username}:${password}`, "utf8").digest();

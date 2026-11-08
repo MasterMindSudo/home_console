@@ -6,6 +6,8 @@ async function run() {
   const password = "correct-horse-battery-staple-123";
   assert.throws(() => registerAccessControl(Fastify(), { username: "", password: "", required: true }));
   assert.throws(() => registerAccessControl(Fastify(), { username: "home", password: "short", required: true }));
+  assert.throws(() => registerAccessControl(Fastify(), { username: "home", password: "1234567890123", required: true }));
+  assert.doesNotThrow(() => registerAccessControl(Fastify(), { username: "home", password: "12345678901234", required: true }));
   assert.throws(() => registerAccessControl(Fastify(), { username: "home:other", password, required: true }));
 
   const app = Fastify();
