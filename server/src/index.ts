@@ -10,6 +10,7 @@ import { busRoutes } from "./routes/bus";
 import { mtrRoutes } from "./routes/mtr";
 import { debugRoutes } from "./routes/debug";
 import { supabaseRoutes } from "./routes/supabase";
+import { registerAccessControl } from "./lib/access";
 
 const mimeTypes: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -36,8 +37,16 @@ function resolveClientAsset(urlPath: string): string {
 }
 
 async function main(): Promise<void> {
-  await initDatabase();
   const app = Fastify({ logger: true });
+  registerAccessControl(app, {
+    username: process.env.APP_AUTH_USER || "",
+    password: process.env.APP_AUTH_PASSWORD || "",
+    required: process.env.RENDER === "true" || process.env.NODE_ENV === "production"
+  });
+  if (process.env.RENDER === "true" && (!config.supabaseUrl || !config.supabaseSecretKey)) {
+    throw new Error("SUPABASE_URL and SUPABASE_SECRET_KEY are required on Render.");
+  }
+  await initDatabase();
 
   await app.register(cors, { origin: config.clientOrigin });
   await app.register(profileRoutes);

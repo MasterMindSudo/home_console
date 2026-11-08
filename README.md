@@ -25,6 +25,7 @@ Open the client at `http://localhost:5173`.
 
 ## Configuration
 
+- Render and other production deployments require `APP_AUTH_USER` and a strong `APP_AUTH_PASSWORD` of at least 24 characters. The username must contain printable ASCII characters and no colon. The browser prompts for these credentials before showing the dashboard or API; `/api/health` remains public for Render health checks. Use a unique, randomly generated password and only access the app over HTTPS. Local development runs without authentication when neither variable is set.
 - Put your main TomTom key in `.env` as `TOMTOM_API_KEY`. Optional backup aliases are `TOMTOM_BACKUP_API_KEY`, `TOMTOM_API_KEY_BACKUP`, or `TOMTOM_BACKUP_KEY`.
 - Restart the dev server after changing `.env`; the backend only reads TomTom keys at startup.
 - Profile storage auto-selects by env:

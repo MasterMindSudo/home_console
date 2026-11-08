@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { withSupabase, type SupabaseContext, type WithSupabaseConfig } from "@supabase/server";
+import WebSocket from "ws";
 import { config } from "../config";
 
 type SupabaseWebHandler<Database = unknown> = (
@@ -86,6 +87,7 @@ export function supabaseRoute<Database = unknown>(
     {
       ...routeConfig,
       cors: false,
+      supabaseOptions: { realtime: { transport: WebSocket as unknown as never } },
       env: {
         url: config.supabaseUrl,
         publishableKeys: { default: config.supabasePublishableKey },
